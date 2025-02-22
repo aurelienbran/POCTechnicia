@@ -1,0 +1,113 @@
+
+        <html>
+        <head>
+            <title>Rapport de Performance - 2025-02-18 18:16</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+                img { max-width: 100%; height: auto; margin: 20px 0; }
+                .success { color: green; }
+                .warning { color: orange; }
+                .error { color: red; }
+            </style>
+        </head>
+        <body>
+            <h1>Rapport de Performance</h1>
+            
+            <h2>Résumé</h2>
+            <table>
+                <tr>
+                    <th>Métrique</th>
+                    <th>Valeur</th>
+                    <th>Statut</th>
+                </tr>
+                <tr>
+                    <td>Nombre de fichiers testés</td>
+                    <td>3</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Temps de traitement moyen</td>
+                    <td>5.43 s</td>
+                    <td class="error">
+                        ❌ Dépassé (< 5s)
+                    </td>
+                </tr>
+                <tr>
+                    <td>Mémoire moyenne utilisée</td>
+                    <td>1.83 MB</td>
+                    <td class="success">
+                        ✅ OK (< 1GB)
+                    </td>
+                </tr>
+                <tr>
+                    <td>Plus grand fichier traité</td>
+                    <td>111.33 MB</td>
+                    <td class="warning">
+                        ⚠️ Limite (< 150MB)
+                    </td>
+                </tr>
+                <tr>
+                    <td>Vitesse moyenne de traitement</td>
+                    <td>4.65 MB/s</td>
+                    <td>-</td>
+                </tr>
+            </table>
+            
+            <h2>Graphiques</h2>
+            <img src="size_vs_time.png" alt="Taille vs Temps">
+            <img src="size_vs_memory.png" alt="Taille vs Mémoire">
+            <img src="processing_speed.png" alt="Vitesse de traitement">
+            
+            <h2>Détails par fichier</h2>
+            <table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>filename</th>
+      <th>size_mb</th>
+      <th>processing_time</th>
+      <th>memory_used</th>
+      <th>speed_mbs</th>
+      <th>chunks_count</th>
+      <th>avg_chunk_size</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>fe.pdf</td>
+      <td>0.138060</td>
+      <td>0.154163</td>
+      <td>2.789062</td>
+      <td>0.895541</td>
+      <td>4</td>
+      <td>5.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>el.pdf</td>
+      <td>11.356294</td>
+      <td>6.223012</td>
+      <td>2.683594</td>
+      <td>1.824887</td>
+      <td>448</td>
+      <td>5.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>LJ70_RJ70_chassis_body.pdf</td>
+      <td>111.332416</td>
+      <td>9.926632</td>
+      <td>0.011719</td>
+      <td>11.215528</td>
+      <td>0</td>
+      <td>0.0</td>
+    </tr>
+  </tbody>
+</table>
+        </body>
+        </html>
+        

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistant Documentation Technique</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar avec upload -->
+        <div class="w-16 bg-white shadow-lg flex flex-col items-center py-4">
+            <!-- Upload button -->
+            <form id="uploadForm" class="relative">
+                <label class="w-12 h-12 flex items-center justify-center bg-blue-50 text-blue-600 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors duration-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <input type="file" id="pdfFile" name="file" accept=".pdf" class="hidden">
+                </label>
+                <!-- Badge de progression -->
+                <div id="uploadProgress" class="hidden absolute -top-1 -right-1 w-4 h-4">
+                    <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                </div>
+            </form>
+            
+            <!-- Statut d'indexation -->
+            <div id="indexingStatus" class="hidden mt-2 px-2 text-center">
+                <div class="text-xs text-gray-600 break-words"></div>
+            </div>
+        </div>
+
+        <!-- Zone principale -->
+        <div class="flex-1 flex flex-col">
+            <!-- En-tête -->
+            <header class="bg-white shadow-sm p-4">
+                <h1 class="text-2xl font-bold text-gray-800">Assistant Documentation Technique</h1>
+            </header>
+
+            <!-- Zone de chat -->
+            <div class="flex-1 flex flex-col p-4 overflow-hidden">
+                <!-- Messages -->
+                <div id="chatMessages" class="flex-1 overflow-y-auto space-y-4 p-4">
+                    <!-- Les messages seront ajoutés ici -->
+                </div>
+
+                <!-- Zone de saisie -->
+                <div class="bg-white rounded-lg shadow-lg p-4 mt-4">
+                    <form id="questionForm" class="flex gap-2">
+                        <input type="text" 
+                               id="query" 
+                               placeholder="Posez votre question..." 
+                               class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" 
+                                id="sendButton" 
+                                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200">
+                            Envoyer
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal d'upload -->
+        <div id="uploadModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full">
+                <h3 class="text-lg font-semibold mb-4">Traitement du document</h3>
+                <div id="uploadDetails" class="space-y-2 mb-4">
+                    <p id="documentName" class="text-sm text-gray-600"></p>
+                    <p id="documentSize" class="text-sm text-gray-600"></p>
+                    <p id="documentPages" class="text-sm text-gray-600"></p>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <div id="uploadStatus" class="mt-2 text-sm text-gray-600"></div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', path='js/app.js') }}"></script>
+</body>
+</html>

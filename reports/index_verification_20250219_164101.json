@@ -1,0 +1,142 @@
+{
+  "timestamp": "2025-02-19T16:41:01.018988",
+  "config_check": {
+    "checks": {
+      "vector_size": {
+        "status": true,
+        "value": 1024,
+        "expected": 1024
+      },
+      "distance": {
+        "status": true,
+        "value": "Cosine",
+        "expected": "Cosine"
+      },
+      "segments": {
+        "status": true,
+        "value": 2,
+        "expected": "≥ 2"
+      }
+    },
+    "status": true,
+    "collection_info": {
+      "status": "green",
+      "optimizer_status": "ok",
+      "vectors_count": 4,
+      "indexed_vectors_count": 0,
+      "points_count": 4,
+      "segments_count": 2,
+      "config": {
+        "params": {
+          "vectors": {
+            "size": 1024,
+            "distance": "Cosine",
+            "hnsw_config": null,
+            "quantization_config": null,
+            "on_disk": null
+          },
+          "shard_number": 1,
+          "sharding_method": null,
+          "replication_factor": 1,
+          "write_consistency_factor": 1,
+          "read_fan_out_factor": null,
+          "on_disk_payload": true,
+          "sparse_vectors": null
+        },
+        "hnsw_config": {
+          "m": 16,
+          "ef_construct": 100,
+          "full_scan_threshold": 10000,
+          "max_indexing_threads": 0,
+          "on_disk": false,
+          "payload_m": null
+        },
+        "optimizer_config": {
+          "deleted_threshold": 0.2,
+          "vacuum_min_vector_number": 1000,
+          "default_segment_number": 2,
+          "max_segment_size": null,
+          "memmap_threshold": null,
+          "indexing_threshold": 0,
+          "flush_interval_sec": 5,
+          "max_optimization_threads": 2
+        },
+        "wal_config": {
+          "wal_capacity_mb": 32,
+          "wal_segments_ahead": 0
+        },
+        "quantization_config": null
+      },
+      "payload_schema": {}
+    }
+  },
+  "chunk_analysis": {
+    "stats": {
+      "total_chunks": 4,
+      "tokens": {
+        "min": 12,
+        "max": 125,
+        "avg": 75.5
+      },
+      "chunks_in_range": 0,
+      "metadata_complete": 0,
+      "has_section": 0,
+      "vector_norms": {
+        "min": 0.9999999408180833,
+        "max": 1.0000000121288253,
+        "avg": 0.9999999844073897
+      },
+      "percent_in_range": 0.0,
+      "percent_metadata_complete": 0.0,
+      "percent_has_section": 0.0
+    },
+    "chunk_analysis": [
+      {
+        "id": "38ef6bc8-3106-482c-9aab-16c6d1a71581",
+        "tokens": 112,
+        "in_target_range": false,
+        "metadata_complete": false,
+        "has_section": false,
+        "vector_norm": 0.9999999408180833
+      },
+      {
+        "id": "659d2a78-861f-479a-b3a4-0cf9a02b0576",
+        "tokens": 125,
+        "in_target_range": false,
+        "metadata_complete": false,
+        "has_section": false,
+        "vector_norm": 1.0000000121288253
+      },
+      {
+        "id": "bb2f6ef2-f1e3-4b7d-9bbf-c8a16edfc6fc",
+        "tokens": 53,
+        "in_target_range": false,
+        "metadata_complete": false,
+        "has_section": false,
+        "vector_norm": 1.000000008129629
+      },
+      {
+        "id": "ca364b5a-b6f1-4bba-abd9-2394b798ab4f",
+        "tokens": 12,
+        "in_target_range": false,
+        "metadata_complete": false,
+        "has_section": false,
+        "vector_norm": 0.9999999765530214
+      }
+    ]
+  },
+  "document_verifications": [
+    {
+      "status": "error",
+      "error": "Unknown arguments: ['filter']"
+    },
+    {
+      "status": "error",
+      "error": "Unknown arguments: ['filter']"
+    },
+    {
+      "status": "error",
+      "error": "Unknown arguments: ['filter']"
+    }
+  ]
+}

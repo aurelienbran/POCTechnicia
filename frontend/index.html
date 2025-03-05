@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <base href="/" id="base-tag">
+    <link rel="icon" type="image/svg+xml" href="./cff-logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CFF AI Assistant - Documentation Technique</title>
+    <meta name="description" content="CFF AI Assistant - Système RAG pour la documentation technique" />
+    <script>
+      // Ajuster dynamiquement la base en fonction de l'URL
+      if (window.location.pathname.startsWith('/new')) {
+        document.getElementById('base-tag').href = '/new/';
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./src/main.tsx"></script>
+  </body>
+</html>

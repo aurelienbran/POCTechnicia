@@ -3,6 +3,11 @@ import os
 from app.config import settings
 import logging
 import time
+import numpy as np
+from tenacity import retry, stop_after_attempt, wait_exponential
+import asyncio
+from .question_classifier import QuestionClassifier, QuestionType
+from app.core.formatters import TechnicalResponseFormatter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,208 +28,329 @@ except Exception as e:
 
 import anthropic
 import json
-from tenacity import retry, stop_after_attempt, wait_exponential
-import numpy as np
-import asyncio
 
 logger.info("Module anthropic importé avec succès")
 logger.info("Module json importé avec succès")
-logger.info("Module tenacity importé avec succès")
-logger.info("Module numpy importé avec succès")
-logger.info("Module asyncio importé avec succès")
 
 class LLMInterface:
-    def __init__(self):
-        """Initialise la connexion avec Claude et Voyage."""
-        logger.info("Initialisation de LLMInterface")
-        self._initialized = False
-        self._voyage_initialized = False
+    SYSTEM_PROMPT = """Tu es CFF IA, l'assistant technique officiel des CFF (Chemins de fer fédéraux suisses).
+
+        Pour les questions SIMPLES (salutations, présentations) :
+        - Présente-toi comme CFF IA, l'assistant technique des CFF
+        - Adopte un ton professionnel mais conversationnel, comme un collègue expert
+        - Propose ton aide sur la documentation et les aspects techniques du projet
+
+        Pour les questions TECHNIQUES :
+        - Réponds comme un expert ferroviaire s'adressant à un collègue technicien
+        - Utilise un langage technique précis mais accessible
+        - Intègre naturellement les informations techniques dans une conversation fluide
+        - Évite les sections rigides et les formulations trop formelles
+        - Organise ta réponse de façon logique mais conversationnelle
+        - Présente les informations de manière fluide et naturelle
+        - NE CITE JAMAIS les sources dans le corps du texte
+        - N'utilise PAS de références comme (Document 1), [1], ou "selon le document X"
+        - Présente l'information comme si elle faisait partie de tes connaissances
+        - Les sources seront automatiquement ajoutées à la fin de ta réponse
+        """
         
+    def __init__(self, api_key: Optional[str] = None):
+        """Initialise l'interface avec le client Anthropic et Voyage."""
+        # Anthropic (Claude)
+        self.client = anthropic.Anthropic(api_key=api_key or settings.ANTHROPIC_API_KEY)
+        self.model = "claude-3-sonnet-20240229"
+        self.classifier = QuestionClassifier()
+        
+        # Voyage AI
+        self._voyage_initialized = False
+        self._voyage_client = None
+        self._voyage_model = "voyage-2"
+        
+        # Initialisation de Voyage AI avec retry
+        self._initialize_voyage()
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    def _initialize_voyage(self):
+        """Initialise Voyage AI avec retry pattern."""
         try:
-            # Initialiser Anthropic (Claude)
-            self.client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-            self.model = "claude-3-sonnet-20240229"
-            self.system_prompt = """Tu es un assistant technique expert qui aide à répondre aux questions
-            en te basant sur la documentation technique fournie. Utilise uniquement les informations
-            présentes dans le contexte fourni pour répondre. Si tu ne trouves pas l'information dans
-            le contexte, dis-le clairement. Sois précis et concis dans tes réponses."""
-            
-            # Initialiser Voyage AI
             if not settings.VOYAGE_API_KEY:
-                raise ValueError("VOYAGE_API_KEY non définie")
+                logger.error("VOYAGE_API_KEY non définie dans les settings")
+                return
                 
             os.environ["VOYAGE_API_KEY"] = settings.VOYAGE_API_KEY
-            self.voyage_client = voyageai.Client()
-            self.voyage_model = "voyage-2"  # Utiliser voyage-2 qui a une limite de 4000 tokens
+            self._voyage_client = voyageai.Client()
             
-            # Tester la connexion avec un retry
-            max_retries = 3
-            retry_delay = 1
+            # Test de connexion avec retry
+            test_text = "Test de connexion"
+            response = self._voyage_client.embed(test_text, model=self._voyage_model)
+            test_embedding = response.embeddings[0]
             
-            for attempt in range(max_retries):
-                try:
-                    test_text = "Test de connexion"
-                    response = self.voyage_client.embed(test_text, model=self.voyage_model)
-                    test_embedding = response.embeddings[0]  # Accéder à la propriété embeddings
-                    
-                    if not isinstance(test_embedding, list) or len(test_embedding) != 1024:
-                        raise ValueError(f"Embedding invalide: attendu 1024 dimensions, reçu {len(test_embedding) if isinstance(test_embedding, list) else 'non-liste'}")
-                        
-                    self._voyage_initialized = True
-                    logger.info("Voyage AI initialisé avec succès")
-                    break
-                    
-                except Exception as e:
-                    if attempt < max_retries - 1:
-                        logger.warning(f"Tentative {attempt + 1} échouée: {str(e)}")
-                        time.sleep(retry_delay)
-                        retry_delay *= 2  # Backoff exponentiel
-                    else:
-                        raise ValueError(f"Échec de l'initialisation de Voyage AI après {max_retries} tentatives: {str(e)}")
-            
-            self._initialized = True
-            logger.info("LLMInterface initialisé avec succès")
+            if not isinstance(test_embedding, list) or len(test_embedding) != 1024:
+                raise ValueError(f"Embedding invalide: attendu 1024 dimensions, reçu {len(test_embedding) if isinstance(test_embedding, list) else 'non-liste'}")
+                
+            self._voyage_initialized = True
+            logger.info("Voyage AI initialisé avec succès")
             
         except Exception as e:
-            logger.error(f"Erreur critique lors de l'initialisation de LLMInterface: {str(e)}")
+            logger.error(f"Erreur lors de l'initialisation de Voyage AI: {str(e)}")
+            self._voyage_initialized = False
             raise
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    async def get_embeddings(self, texts: List[str], batch_size: int = 10, max_retries: int = 3, timeout: int = 120) -> List[List[float]]:
+        """
+        Génère des embeddings pour une liste de textes en traitant par lots.
+        
+        Args:
+            texts: Liste des textes à encoder
+            batch_size: Taille de chaque lot (nombre de textes traités par requête)
+            max_retries: Nombre maximal de tentatives en cas d'échec
+            timeout: Timeout en secondes pour chaque requête API
+        
+        Returns:
+            Liste des embeddings générés
+        """
+        if not self._voyage_initialized or not self._voyage_client:
+            raise RuntimeError("Voyage AI n'est pas initialisé correctement")
+        
+        if not texts:
+            return []
+        
+        all_embeddings = []
+        total_batches = (len(texts) + batch_size - 1) // batch_size
+        processed_batches = 0
+        
+        logger.info(f"Traitement de {len(texts)} textes en {total_batches} lots de maximum {batch_size} textes")
+        
+        # Diviser les textes en lots
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            batch_num = processed_batches + 1
+            
+            # Début du traitement du lot avec mécanisme de retry avancé
+            retry_count = 0
+            batch_success = False
+            current_timeout = timeout
+            
+            while not batch_success and retry_count < max_retries:
+                try:
+                    logger.info(f"Traitement du lot {batch_num}/{total_batches} ({len(batch)} textes)")
+                    start_time = time.time()
+                    
+                    # Configuration du timeout
+                    response = await asyncio.wait_for(
+                        asyncio.to_thread(
+                            self._voyage_client.embed,
+                            batch,
+                            model=self._voyage_model
+                        ),
+                        timeout=current_timeout
+                    )
+                    
+                    # Validation du résultat
+                    batch_embeddings = response.embeddings
+                    if len(batch_embeddings) != len(batch):
+                        raise ValueError(f"Nombre d'embeddings ({len(batch_embeddings)}) différent du nombre de textes ({len(batch)})")
+                    
+                    # Ajout des embeddings du lot aux résultats
+                    all_embeddings.extend(batch_embeddings)
+                    processing_time = time.time() - start_time
+                    logger.info(f"Lot {batch_num}/{total_batches} traité en {processing_time:.2f}s")
+                    
+                    batch_success = True
+                    processed_batches += 1
+                    
+                except asyncio.TimeoutError:
+                    retry_count += 1
+                    logger.warning(f"Timeout lors du traitement du lot {batch_num}/{total_batches}. Tentative {retry_count}/{max_retries}")
+                    # Augmenter le timeout progressivement à chaque retry
+                    current_timeout = min(current_timeout * 1.5, 600)  # Maximum 10 minutes
+                    
+                except Exception as e:
+                    retry_count += 1
+                    logger.error(f"Erreur lors du traitement du lot {batch_num}/{total_batches}: {str(e)}. Tentative {retry_count}/{max_retries}")
+                    await asyncio.sleep(2 ** retry_count)  # Backoff exponentiel
+                    
+            # Si le lot a échoué après toutes les tentatives
+            if not batch_success:
+                logger.error(f"Échec du traitement du lot {batch_num}/{total_batches} après {max_retries} tentatives")
+                raise RuntimeError(f"Impossible de générer les embeddings pour le lot {batch_num}")
+        
+        logger.info(f"Génération des embeddings terminée: {processed_batches}/{total_batches} lots traités")
+        return all_embeddings
+
+    async def _call_claude_simple(self, query: str):
+        """Génère une réponse pour une question simple."""
+        try:
+            response = await asyncio.to_thread(
+                self.client.messages.create,
+                model=self.model,
+                max_tokens=1000,
+                temperature=0.7,  # Plus de personnalité pour les réponses simples
+                system=self.SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": query}]
+            )
+            
+            # S'assurer que la réponse est une chaîne de caractères
+            response_text = response.content
+            if isinstance(response_text, list):
+                # Extraire le texte de chaque ContentBlock
+                response_text = " ".join(block.text for block in response_text)
+            
+            return response_text
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'appel à Claude (simple): {str(e)}")
+            raise
+
+    async def _call_claude_technical(self, query: str, context_docs: List[Dict]):
+        """Génère une réponse technique basée sur le contexte."""
+        try:
+            formatted_context = self._format_technical_context(context_docs)
+            response = await asyncio.to_thread(
+                self.client.messages.create,
+                model=self.model,
+                max_tokens=2000,
+                temperature=0.6,  # Augmenté de 0.5 à 0.6 pour un ton plus naturel
+                system=self.SYSTEM_PROMPT,
+                messages=[{
+                    "role": "user",
+                    "content": f"Contexte :\n{formatted_context}\n\nQuestion : {query}"
+                }]
+            )
+            
+            # S'assurer que la réponse est une chaîne de caractères
+            response_text = response.content
+            if isinstance(response_text, list):
+                # Extraire le texte de chaque ContentBlock
+                response_text = " ".join(block.text for block in response_text)
+            
+            # Formater la réponse avec notre formateur technique
+            formatter = TechnicalResponseFormatter()
+            formatted_response = formatter.format_response(
+                query=query,
+                context_docs=context_docs,
+                llm_response=response_text
+            )
+            
+            return formatted_response
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'appel à Claude (technique): {str(e)}")
+            raise
+
+    def _format_technical_context(self, context_docs: List[Dict]) -> str:
+        """Formate le contexte technique pour les questions techniques."""
+        if not context_docs:
+            return "Aucun document pertinent trouvé dans la base de données."
+            
+        formatted_docs = []
+        
+        for i, doc in enumerate(context_docs, 1):
+            content = doc.get("content", "").strip()
+            metadata = doc.get("metadata", {})
+            source = metadata.get("source", "").strip()
+            page = metadata.get("page", "")
+            section = metadata.get("section", "")
+            score = doc.get("score", 0)
+            relevance = int(score * 100)
+            
+            if content:
+                # Amélioration: Inclure les informations de page et de section dans l'en-tête
+                doc_header = f"Document {i} (pertinence: {relevance}%)"
+                if source:
+                    doc_header += f" - Source: {source}"
+                if page:
+                    doc_header += f" - Page: {page}"
+                if section:
+                    doc_header += f" - Section: {section}"
+                
+                # Essayer d'identifier les sections dans le contenu
+                sections = []
+                current_section = []
+                
+                for line in content.split('\n'):
+                    line = line.strip()
+                    if not line:
+                        continue
+                        
+                    # Détecter les titres de section potentiels
+                    if line.isupper() or line.endswith(':'):
+                        if current_section:
+                            sections.append('\n'.join(current_section))
+                            current_section = []
+                    current_section.append(line)
+                
+                if current_section:
+                    sections.append('\n'.join(current_section))
+                
+                # Formater le document
+                formatted_content = '\n\n'.join(sections)
+                formatted_docs.append(f"{doc_header}\n{'-' * len(doc_header)}\n{formatted_content}")
+        
+        context = '\n\n'.join(formatted_docs)
+        
+        return f"""Voici les documents pertinents trouvés dans la base de données.
+Pour chaque document, j'ai indiqué sa pertinence par rapport à la question, ainsi que sa source, page et section quand disponibles.
+Utilise ces informations pour structurer ta réponse de façon conversationnelle et fluide.
+
+IMPORTANT:
+- NE CITE PAS les sources dans le corps du texte. N'utilise pas de références comme (Document 1), [1], ou toute autre forme de citation.
+- N'utilise pas de formulations comme "selon le document X" ou "d'après la source Y".
+- Présente l'information comme si elle faisait partie de tes connaissances, de façon naturelle et fluide.
+- Les sources seront automatiquement ajoutées à la fin de ta réponse, tu n'as pas besoin de les mentionner.
+
+Documents :
+{context}"""
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def generate_response(
         self,
         query: str,
-        context_docs: List[Dict[str, Any]],
-        max_tokens: int = 1000,
-        temperature: float = 0.7
+        context_docs: List[Dict[str, Any]] = None,
+        question_type: Optional[QuestionType] = None
     ) -> str:
         """
-        Génère une réponse à la question en utilisant le contexte fourni.
+        Génère une réponse adaptée au type de question.
         
         Args:
             query: La question de l'utilisateur
-            context_docs: Liste de documents pertinents avec leurs scores
-            max_tokens: Nombre maximum de tokens pour la réponse
-            temperature: Contrôle la créativité de la réponse (0.0 = déterministe, 1.0 = créatif)
-        
+            context_docs: Documents de contexte (optionnel)
+            question_type: Type de question (si déjà classifié)
+            
         Returns:
             str: La réponse générée
         """
         try:
-            logger.info(f"Génération de réponse pour la question: {query}")
-            # Préparer le contexte
-            formatted_context = []
-            for doc in context_docs:
-                text = doc.get("text", "")
-                score = doc.get("score", 0)
-                if score >= 0.5:  # Seuil abaissé pour être plus permissif
-                    formatted_context.append(f"[Score: {score:.2f}] {text}")
+            # Classifier la question si le type n'est pas fourni
+            if question_type is None:
+                try:
+                    question_type = await self.classifier.classify(query)
+                    logger.info(f"Question classifiée comme: {question_type}")
+                except Exception as e:
+                    logger.error(f"Erreur lors de la classification: {str(e)}")
+                    # Par défaut, traiter comme une question technique si la classification échoue
+                    question_type = QuestionType.TECHNIQUE
+                    logger.info("Utilisation du type TECHNIQUE par défaut")
 
-            if not formatted_context:
-                return "Je n'ai pas trouvé de documents pertinents pour répondre à votre question. Veuillez reformuler ou poser une autre question."
+            # Générer la réponse selon le type de question
+            try:
+                if question_type == QuestionType.SIMPLE:
+                    message = await self._call_claude_simple(query)
+                else:
+                    message = await self._call_claude_technical(query, context_docs or [])
+                
+                if not message:
+                    raise ValueError("Réponse vide reçue de Claude")
+                
+                return message
 
-            context_text = "\n\n".join(formatted_context)
-            
-            # Construire le prompt
-            user_content = f"""Contexte :
-            {context_text}
-            
-            Question : {query}
-            
-            Réponds à la question en te basant uniquement sur le contexte fourni."""
-
-            # Appeler Claude avec le nouveau format
-            message = await asyncio.to_thread(
-                self.client.messages.create,
-                model=self.model,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                system=self.system_prompt,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": user_content
-                    }
-                ]
-            )
-
-            # Extraire le texte du ContentBlock
-            response_text = message.content[0].text if message.content else ""
-            logger.info(f"Réponse générée avec succès: {response_text}")
-            return response_text
+            except Exception as e:
+                logger.error(f"Erreur lors de l'appel à Claude: {str(e)}")
+                raise RuntimeError(f"Erreur lors de la génération de la réponse: {str(e)}")
 
         except Exception as e:
-            logger.error(f"Erreur lors de la génération de la réponse: {str(e)}")
-            raise
-
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    async def generate_follow_up_questions(
-        self,
-        query: str,
-        context_docs: List[Dict[str, Any]],
-        previous_response: str,
-        num_questions: int = 3
-    ) -> List[str]:
-        """
-        Génère des questions de suivi pertinentes basées sur le contexte et la réponse précédente.
-        
-        Args:
-            query: La question originale de l'utilisateur
-            context_docs: Liste de documents pertinents avec leurs scores
-            previous_response: La réponse précédente générée
-            num_questions: Nombre de questions de suivi à générer
-        
-        Returns:
-            List[str]: Liste des questions de suivi générées
-        """
-        try:
-            logger.info(f"Génération de questions de suivi pour la question: {query}")
-            # Préparer le contexte
-            formatted_context = []
-            for doc in context_docs:
-                text = doc.get("text", "")
-                score = doc.get("score", 0)
-                if score >= 0.5:  # Seuil abaissé pour être plus permissif
-                    formatted_context.append(f"[Score: {score:.2f}] {text}")
-
-            if not formatted_context:
-                return "Je n'ai pas trouvé de documents pertinents pour répondre à votre question. Veuillez reformuler ou poser une autre question."
-
-            context_text = "\n\n".join(formatted_context)
-            
-            # Construire le prompt pour les questions de suivi
-            user_content = f"""Contexte :
-            {context_text}
-            
-            Question initiale : {query}
-            
-            Réponse précédente : {previous_response}
-            
-            Génère {num_questions} questions de suivi pertinentes basées sur le contexte et la réponse. Retourne une question par ligne."""
-
-            # Appeler Claude avec le nouveau format
-            message = await asyncio.to_thread(
-                self.client.messages.create,
-                model=self.model,
-                max_tokens=1000,
-                temperature=0.7,
-                system=self.system_prompt,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": user_content
-                    }
-                ]
-            )
-
-            # Extraire et formater les questions
-            response_text = message.content[0].text if message.content else ""
-            questions = [q.strip() for q in response_text.split("\n") if q.strip()]
-            logger.info(f"Questions de suivi générées avec succès: {questions[:num_questions]}")
-            return questions[:num_questions]
-
-        except Exception as e:
-            logger.error(f"Erreur lors de la génération des questions de suivi: {str(e)}")
-            raise
+            logger.error(f"Erreur lors de la génération de réponse: {str(e)}")
+            raise RuntimeError("Une erreur est survenue lors de la génération de la réponse. Veuillez réessayer.")
 
     async def summarize_document(
         self,
@@ -256,7 +382,7 @@ class LLMInterface:
                 model=self.model,
                 max_tokens=max_length,
                 temperature=0.7,
-                system=self.system_prompt,
+                system=self.SYSTEM_PROMPT,
                 messages=[
                     {
                         "role": "user",
@@ -266,7 +392,7 @@ class LLMInterface:
             )
 
             # Extraire le texte du ContentBlock
-            summary = message.content[0].text if message.content else ""
+            summary = message.content if message else ""
             logger.info(f"Résumé généré avec succès: {summary[:100]}...")
             return summary
 
@@ -274,67 +400,47 @@ class LLMInterface:
             logger.error(f"Erreur lors de la génération du résumé: {str(e)}")
             raise
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    async def get_embedding(self, text: str) -> Optional[np.ndarray]:
-        """
-        Génère un embedding pour le texte donné.
-        Utilise un retry pattern pour la résilience.
-        
-        Args:
-            text: Texte à encoder
-            
-        Returns:
-            np.ndarray: Vecteur d'embedding ou None si erreur
-        """
-        if not self._voyage_initialized:
-            logger.error("Voyage AI n'est pas initialisé")
-            return None
-            
+    async def generate_follow_up_questions(
+        self,
+        query: str,
+        initial_response: str,
+    ) -> List[str]:
+        """Génère des questions de suivi basées sur la réponse initiale."""
         try:
-            # Limiter la taille du texte si nécessaire
-            max_text_length = 8192
-            if len(text) > max_text_length:
-                logger.warning(f"Texte tronqué de {len(text)} à {max_text_length} caractères")
-                text = text[:max_text_length]
+            # Construire le prompt pour les questions de suivi
+            user_content = f"""En fonction de la question initiale et de la réponse fournie, génère exactement 3 questions de suivi pertinentes.
             
-            # Générer l'embedding avec timeout
-            async with asyncio.timeout(30):  # 30 secondes timeout
-                response = await asyncio.to_thread(
-                    self.voyage_client.embed,
-                    text,
-                    model=self.voyage_model
-                )
-                test_embedding = response.embeddings[0]  # Accéder à la propriété embeddings
-                
-                if not isinstance(test_embedding, list):
-                    logger.error(f"Format d'embedding invalide: {type(test_embedding)}")
-                    return None
-                    
-                return np.array(test_embedding)
-                
-        except asyncio.TimeoutError:
-            logger.error("Timeout lors de la génération de l'embedding")
-            return None
-        except Exception as e:
-            logger.error(f"Erreur lors de la génération de l'embedding: {str(e)}")
-            return None
+            Question initiale : {query}
+            
+            Réponse : {initial_response}
+            
+            Format attendu : uniquement les 3 questions, une par ligne, sans numérotation ni préfixe."""
 
-    async def get_embeddings(self, texts: List[str]) -> Optional[List[np.ndarray]]:
-        """Génère des embeddings pour une liste de textes."""
-        if not self._voyage_initialized:
-            raise RuntimeError("Voyage AI n'est pas initialisé")
+            # Appeler Claude avec le nouveau format
+            message = await asyncio.to_thread(
+                self.client.messages.create,
+                model=self.model,
+                max_tokens=500,
+                temperature=0.7,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": user_content
+                    }
+                ]
+            )
+
+            # Extraire et traiter les questions
+            questions_text = message.content if message else ""
+            questions = [q.strip() for q in questions_text.split('\n') if q.strip()]
             
-        try:
-            response = self.voyage_client.embed(texts, model=self.voyage_model)
-            if not response or not hasattr(response, 'embeddings'):
-                raise ValueError("Réponse invalide de Voyage AI")
-                
-            embeddings = response.embeddings
-            if not embeddings or not isinstance(embeddings, list):
-                raise ValueError("Échec de la génération des embeddings")
-                
-            return [np.array(emb) for emb in embeddings]
-            
+            # S'assurer qu'on a exactement 3 questions
+            questions = questions[:3]
+            while len(questions) < 3:
+                questions.append("Avez-vous d'autres questions ?")
+
+            return questions
+
         except Exception as e:
-            logger.error(f"Erreur lors de la génération des embeddings: {str(e)}")
-            raise
+            logger.error(f"Erreur lors de la génération des questions de suivi: {str(e)}")
+            return []

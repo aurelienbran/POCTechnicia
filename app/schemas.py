@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+from pathlib import Path
 
 class DocumentMetadata(BaseModel):
     """Métadonnées d'un document."""
@@ -62,6 +63,7 @@ class QueryResponse(BaseModel):
     answer: str
     sources: List[Source]
     processing_time: float
+    follow_up_questions: Optional[List[str]] = Field(default_factory=list)
 
 class CollectionStats(BaseModel):
     """Statistiques de la collection."""
@@ -70,8 +72,47 @@ class CollectionStats(BaseModel):
     dimension: int
     distance: str
 
+class DocumentsStatistics(BaseModel):
+    """Statistiques détaillées sur les documents indexés."""
+    collection_name: str
+    documents_count: int
+    vectors_count: int
+    indexed_vectors_count: int
+    indexing_percentage: float
+    points_count: int
+    avg_vectors_per_document: float
+    is_empty: bool
+    is_fully_indexed: bool
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
 class ErrorResponse(BaseModel):
     """Réponse d'erreur."""
     error: str
     detail: Optional[str] = None
     timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+class IndexingProgressEvent(BaseModel):
+    """Événement de progression d'indexation."""
+    in_progress: bool
+    current_file: Optional[str] = None
+    indexed_chunks: Optional[int] = None
+    total_chunks: Optional[int] = None
+    error: Optional[bool] = None
+    error_message: Optional[str] = None
+    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+class OCRProgressEvent(BaseModel):
+    """Événement de progression OCR."""
+    progress: Optional[int] = None  # Pourcentage 0-100
+    current_page: Optional[int] = None
+    total_pages: Optional[int] = None
+    message: Optional[str] = None
+    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+class OCRResult(BaseModel):
+    """Résultat d'une opération OCR sur un document."""
+    output_path: Path
+    success: bool
+    original_path: Path
+    error_message: Optional[str] = None
+    processing_time: Optional[float] = None

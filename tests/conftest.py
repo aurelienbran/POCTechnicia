@@ -100,7 +100,7 @@ async def async_client():
 
 @pytest.fixture
 def mock_env_vars(monkeypatch):
-    """Mock les variables d'environnement pour les tests."""
+    """Configure les variables d'environnement pour les tests."""
     env_vars = {
         "MAX_UPLOAD_SIZE": "10485760",
         "QDRANT_HOST": "localhost",
@@ -115,104 +115,115 @@ def mock_env_vars(monkeypatch):
         "MAX_MEMORY_MB": "1024",
         "TESTING": "true"
     }
-    
     for key, value in env_vars.items():
         monkeypatch.setenv(key, value)
 
 @pytest.fixture
 def mock_path_exists(monkeypatch):
-    """Mock pour Path.exists."""
-    def mock_exists(self):
+    """Mock Path.exists pour simuler l'existence de fichiers."""
+    def mock_exists(*args, **kwargs):
         return True
     monkeypatch.setattr(Path, "exists", mock_exists)
 
 @pytest.fixture
 def mock_anthropic():
     """Mock pour le client Anthropic."""
-    mock = MagicMock()
-    mock.messages.create = AsyncMock(return_value=MagicMock(
-        content=[MagicMock(text="Test response")]
-    ))
-    return mock
+    with patch('app.core.llm_interface.anthropic.Anthropic') as mock:
+        mock.return_value.messages.create = AsyncMock()
+        yield mock
 
 @pytest.fixture
 def mock_voyage():
     """Mock pour VoyageAI."""
-    mock = AsyncMock()
-    mock.return_value = [0.1] * 1024  # Retourne un vecteur de test
-    return mock
+    with patch('app.core.llm_interface.voyageai.Client') as mock:
+        yield mock
 
 @pytest.fixture
 def mock_qdrant_client():
     """Mock pour le client Qdrant."""
-    mock = MagicMock()
-    
-    # Mock pour get_collection
-    mock.get_collection = MagicMock(return_value=MagicMock(
-        vectors_count=100,
-        config=MagicMock(params=MagicMock(
-            dimension=1024,
-            distance=MagicMock(distance_type="Cosine")
-        ))
-    ))
-    
-    # Mock pour search
-    async def async_search(*args, **kwargs):
-        return [
-            MagicMock(
-                payload={"text": "Test text", "metadata": {"source": "test.pdf"}},
-                score=0.9
-            )
-        ]
-    
-    mock.search = AsyncMock(side_effect=async_search)
-    
-    # Mock pour upsert
-    mock.upsert = AsyncMock(return_value=None)
-    
-    # Mock pour create_collection
-    mock.create_collection = MagicMock()
-    
-    # Mock pour get_collections
-    mock.get_collections = MagicMock(return_value=MagicMock(
-        collections=[MagicMock(name="test_collection")]
-    ))
-    
-    # Mock pour delete_collection
-    mock.delete_collection = MagicMock()
-    
-    # Mock pour collection_exists
-    mock.collection_exists = MagicMock(return_value=True)
-    
-    # Mock pour recreate_collection
-    mock.recreate_collection = MagicMock()
-    
-    return mock
+    with patch('app.core.vector_store.QdrantClient') as mock:
+        # Mock pour la méthode get_collections
+        mock.return_value.get_collections = MagicMock(return_value=[
+            {"name": "documents"}
+        ])
+        
+        # Mock pour la méthode get_collection
+        mock.return_value.get_collection = MagicMock(return_value={
+            "name": "documents",
+            "vectors_count": 100,
+            "dimension": 1024,
+            "distance": "cosine"
+        })
+        
+        # Mock pour la méthode recreate_collection
+        mock.return_value.recreate_collection = AsyncMock()
+        
+        # Mock pour la méthode upsert
+        mock.return_value.upsert = AsyncMock()
+        
+        # Mock pour la méthode search
+        mock.return_value.search = AsyncMock(return_value=[{
+            "id": "1",
+            "score": 0.9,
+            "payload": {
+                "text": "Test text",
+                "metadata": {"source": "test.pdf"}
+            }
+        }])
+        
+        # Mock pour la méthode count
+        mock.return_value.count = AsyncMock(return_value={"count": 100})
+        
+        # Mock pour la méthode scroll
+        mock.return_value.scroll = AsyncMock(return_value=({
+            "id": "1",
+            "payload": {
+                "text": "Test text",
+                "metadata": {"source": "test.pdf"}
+            }
+        } for _ in range(5)))
+        
+        yield mock
 
 @pytest.fixture
 def test_pdf_content():
     """Contenu de test pour un PDF."""
-    return b"%PDF-1.4\nTest PDF content"
+    return "Test PDF content"
 
 @pytest.fixture
 def test_env_vars():
     """Variables d'environnement de test."""
     return {
-        "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_API_KEY"),
-        "VOYAGE_API_KEY": os.getenv("VOYAGE_API_KEY"),
-        "QDRANT_HOST": os.getenv("QDRANT_HOST", "localhost"),
-        "QDRANT_PORT": os.getenv("QDRANT_PORT", "6333"),
-        "COLLECTION_NAME": os.getenv("COLLECTION_NAME", "documents"),
-        "MAX_TOKENS": os.getenv("MAX_TOKENS", "1000"),
-        "TEMPERATURE": os.getenv("TEMPERATURE", "0.7"),
-        "MODEL_NAME": os.getenv("MODEL_NAME", "claude-3-sonnet-20240229")
+        "MAX_UPLOAD_SIZE": 10485760,
+        "QDRANT_HOST": "localhost",
+        "QDRANT_PORT": 6333,
+        "ANTHROPIC_API_KEY": "test-key",
+        "VOYAGE_API_KEY": "test-key",
+        "MAX_TOKENS": 1000,
+        "TEMPERATURE": 0.7,
+        "MODEL_NAME": "claude-3-sonnet-20240229"
     }
 
 @pytest_asyncio.fixture(autouse=True)
-async def mock_dependencies(mock_anthropic, mock_voyage, mock_qdrant_client, mock_rag_engine):
+async def mock_dependencies(request, mock_anthropic, mock_voyage, mock_qdrant_client, mock_rag_engine):
     """Mock toutes les dépendances externes."""
-    with patch('anthropic.Client', return_value=mock_anthropic), \
-         patch('app.core.vector_store.QdrantClient', return_value=mock_qdrant_client), \
-         patch('app.core.vector_store.get_embedding', mock_voyage), \
-         patch('app.api.v1.router.RAGEngine', return_value=mock_rag_engine):
+    # Ne pas appliquer les mocks si le marqueur no_mock_dependencies est présent
+    if request.node.get_closest_marker('no_mock_dependencies'):
         yield
+        return
+        
+    # Sinon, appliquer les mocks normalement
+    patches = [
+        patch('app.core.llm_interface.anthropic.Anthropic', mock_anthropic),
+        patch('app.core.llm_interface.voyageai.Client', mock_voyage),
+        patch('app.core.vector_store.QdrantClient', mock_qdrant_client),
+        patch('app.core.rag_engine.RAGEngine', mock_rag_engine)
+    ]
+    
+    for p in patches:
+        p.start()
+    
+    yield
+    
+    for p in patches:
+        p.stop()

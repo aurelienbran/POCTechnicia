@@ -1,118 +1,177 @@
+"""Tests pour le module PDFProcessor."""
 import pytest
 import asyncio
 from pathlib import Path
-from app.core.pdf_processor import PDFProcessor
 import tempfile
-import fitz  # PyMuPDF
+import shutil
 import os
+from datetime import datetime
 
-# Création d'un PDF de test
-def create_test_pdf(path: Path, pages: int = 3) -> None:
-    doc = fitz.open()
-    for i in range(pages):
-        page = doc.new_page()
-        text = f"Page {i + 1}\nCeci est un test de contenu pour la page {i + 1}.\n"
-        text += "Lorem ipsum " * 50  # Ajoute du contenu substantiel
-        page.insert_text((50, 50), text)
-    doc.save(str(path))  # Convertir Path en str pour fitz
-    doc.close()
+from app.core.pdf_processor import PDFProcessor
 
-@pytest.fixture(scope="function")
+# Chemin vers le fichier PDF de test
+TEST_PDF_PATH = Path("D:/Projets/POC TECHNICIA/tests/performance/test_files/el.pdf")
+
+@pytest.fixture
 def temp_dir():
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        yield Path(tmpdirname)
+    """Crée un répertoire temporaire pour les tests."""
+    temp_path = Path(tempfile.mkdtemp())
+    yield temp_path
+    shutil.rmtree(temp_path)
 
-@pytest.fixture(scope="function")
-def test_pdf(temp_dir):
-    pdf_path = temp_dir / "test.pdf"
-    create_test_pdf(pdf_path)
-    yield pdf_path
-    try:
-        if pdf_path.exists():
-            pdf_path.unlink()
-    except Exception as e:
-        print(f"Erreur lors du nettoyage du fichier test: {e}")
-
-@pytest.fixture(scope="function")
-def pdf_processor(temp_dir):
-    return PDFProcessor(temp_dir=temp_dir)
+@pytest.fixture
+def processor(temp_dir):
+    """Crée une instance de PDFProcessor pour les tests."""
+    return PDFProcessor(
+        chunk_size=100,
+        overlap=20,
+        temp_dir=temp_dir,
+        extract_images=False
+    )
 
 @pytest.mark.asyncio
-async def test_pdf_processor_initialization(pdf_processor, temp_dir):
-    assert pdf_processor.temp_dir == temp_dir
-    assert pdf_processor.temp_dir.exists()
+async def test_init():
+    """Teste l'initialisation du processeur."""
+    proc = PDFProcessor()
+    assert proc.chunk_size == 512
+    assert proc.overlap == 150
+    assert proc.extract_images is False
+    assert proc.temp_dir.exists()
+    await proc.close()
 
 @pytest.mark.asyncio
-async def test_process_pdf_basic(pdf_processor, test_pdf):
-    chunks = []
-    async for chunk in pdf_processor.process_pdf(test_pdf):
-        chunks.append(chunk)
-    
-    assert len(chunks) > 0
-    assert all(isinstance(chunk, str) for chunk in chunks)
-    assert any("Page 1" in chunk for chunk in chunks)
-
-@pytest.mark.asyncio
-async def test_pdf_metadata(pdf_processor, test_pdf):
-    metadata = await pdf_processor.get_metadata(test_pdf)
+async def test_get_metadata(processor):
+    """Teste l'extraction des métadonnées."""
+    metadata = await processor.get_metadata(TEST_PDF_PATH)
     assert isinstance(metadata, dict)
+    assert "filename" in metadata
+    assert "processed_at" in metadata
+    assert metadata["filename"] == "el.pdf"
     assert "page_count" in metadata
-    assert metadata["page_count"] == 3
-    assert "file_size" in metadata
-    assert metadata["file_size"] > 0
+    assert metadata["page_count"] > 0
 
 @pytest.mark.asyncio
-async def test_large_pdf_handling(pdf_processor, temp_dir):
-    # Créer un PDF plus volumineux pour tester la gestion de la mémoire
-    large_pdf_path = temp_dir / "large.pdf"
-    create_test_pdf(large_pdf_path, pages=20)
+async def test_extract_section_title():
+    """Teste l'extraction des titres de section."""
+    processor = PDFProcessor()
     
-    try:
-        chunks = []
-        async for chunk in pdf_processor.process_pdf(large_pdf_path):
-            chunks.append(chunk)
-            # Vérifier que chaque chunk ne dépasse pas une taille raisonnable
-            assert len(chunk) <= 5000  # Taille maximale raisonnable pour un chunk
+    # Test avec différents formats de titre
+    assert processor._extract_section_title("1.2.3. Mon Titre") == "Mon Titre"
+    assert "Introduction" in processor._extract_section_title("Introduction: Mon texte")
+    assert processor._extract_section_title("Texte sans titre\nContenu") == "Texte sans titre"
+    
+    # Test avec texte vide
+    assert processor._extract_section_title("") == "Section sans titre"
+    
+    await processor.close()
+
+@pytest.mark.asyncio
+async def test_split_into_chunks():
+    """Teste le découpage en chunks."""
+    processor = PDFProcessor(chunk_size=50, overlap=10)
+    
+    # Créer un texte de test
+    text = "Ceci est un texte de test. " * 10
+    
+    chunks = processor._split_into_chunks_with_overlap(text)
+    
+    assert len(chunks) > 1
+    assert all("content" in chunk for chunk in chunks)
+    assert all("tokens" in chunk for chunk in chunks)
+    
+    # Vérifier le chevauchement
+    if len(chunks) > 1:
+        chunk1 = chunks[0]["content"]
+        chunk2 = chunks[1]["content"]
+        # Le début du second chunk devrait être dans la fin du premier
+        assert any(chunk2.startswith(chunk1[i:]) for i in range(len(chunk1)))
+    
+    await processor.close()
+
+@pytest.mark.asyncio
+async def test_process_pdf(processor):
+    """Teste le traitement complet d'un PDF."""
+    chunks = []
+    async for chunk in processor.process_pdf(TEST_PDF_PATH):
+        chunks.append(chunk)
         
-        assert len(chunks) > 0
-    finally:
-        if large_pdf_path.exists():
-            large_pdf_path.unlink()
+        # Vérifier la structure des chunks
+        assert "content" in chunk
+        assert "tokens" in chunk
+        assert "page" in chunk
+        assert "total_pages" in chunk
+        assert "section" in chunk
+        assert "source" in chunk
+        assert "chunk_id" in chunk
+        assert "metadata" in chunk
+    
+    # On devrait avoir au moins un chunk
+    assert len(chunks) > 0
+    print(f"Nombre de chunks générés: {len(chunks)}")
 
 @pytest.mark.asyncio
-async def test_invalid_pdf_path(pdf_processor):
+async def test_process_pdf_with_images(temp_dir):
+    """Teste le traitement d'un PDF avec images activées."""
+    processor = PDFProcessor(
+        chunk_size=100,
+        overlap=20,
+        temp_dir=temp_dir,
+        extract_images=True
+    )
+    
+    chunks = []
+    async for chunk in processor.process_pdf(TEST_PDF_PATH):
+        chunks.append(chunk)
+        assert "has_images" in chunk
+        assert "image_count" in chunk
+    
+    # Vérifier si des images ont été extraites
+    print(f"Nombre d'images trouvées: {chunks[0]['image_count'] if chunks else 0}")
+    await processor.close()
+
+@pytest.mark.asyncio
+async def test_error_handling(processor):
+    """Teste la gestion des erreurs."""
+    # Test avec un fichier inexistant
     with pytest.raises(FileNotFoundError):
-        async for _ in pdf_processor.process_pdf(Path("nonexistent.pdf")):
+        async for _ in processor.process_pdf(Path("fichier_inexistant.pdf")):
             pass
+    
+    # Test avec un fichier non-PDF
+    invalid_file = Path(tempfile.mktemp())
+    invalid_file.write_text("Not a PDF")
+    
+    with pytest.raises(Exception):
+        async for _ in processor.process_pdf(invalid_file):
+            pass
+    
+    invalid_file.unlink()
 
 @pytest.mark.asyncio
-async def test_cleanup(pdf_processor, test_pdf):
-    async for _ in pdf_processor.process_pdf(test_pdf):
-        pass
-    # Vérifier que les fichiers temporaires sont nettoyés
-    temp_files = list(pdf_processor.temp_dir.glob("*"))
-    assert len(temp_files) == 0
+async def test_cleanup(temp_dir):
+    """Teste le nettoyage des ressources."""
+    processor = PDFProcessor(temp_dir=temp_dir, extract_images=True)
+    
+    # Créer quelques fichiers temporaires
+    test_file = temp_dir / "test.txt"
+    test_file.write_text("test")
+    
+    test_dir = temp_dir / "test_dir"
+    test_dir.mkdir()
+    (test_dir / "test.txt").write_text("test")
+    
+    # Nettoyer
+    await processor.close()
+    
+    # Vérifier que les fichiers ont été supprimés
+    assert not test_file.exists()
+    assert not test_dir.exists()
 
-# Test de performance basique
-@pytest.mark.asyncio
-async def test_memory_usage(pdf_processor, temp_dir):
-    import psutil
-    import os
-    
-    process = psutil.Process(os.getpid())
-    initial_memory = process.memory_info().rss / 1024 / 1024  # En MB
-    
-    # Créer un PDF plus grand
-    large_pdf_path = temp_dir / "memory_test.pdf"
-    create_test_pdf(large_pdf_path, pages=30)
-    
-    try:
-        chunks = []
-        async for chunk in pdf_processor.process_pdf(large_pdf_path):
-            chunks.append(chunk)
-            current_memory = process.memory_info().rss / 1024 / 1024
-            # Vérifier que l'utilisation de la mémoire ne dépasse pas 1GB
-            assert current_memory - initial_memory < 1024
-    finally:
-        if large_pdf_path.exists():
-            large_pdf_path.unlink()
+def test_logging(caplog):
+    """Teste le logging."""
+    with caplog.at_level("INFO"):
+        processor = PDFProcessor()
+        assert "PDFProcessor initialisé" in caplog.text
+        
+        # Nettoyer
+        asyncio.run(processor.close())

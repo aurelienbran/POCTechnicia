@@ -162,6 +162,58 @@ class VectorStore:
             logger.error(f"Erreur lors de l'ajout des textes: {str(e)}")
             raise
 
+    async def add_text(self, collection_name: str, document_id: str, text: str, metadata: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Ajoute un seul texte à la collection spécifiée.
+        
+        Args:
+            collection_name: Nom de la collection où ajouter le texte
+            document_id: Identifiant du document
+            text: Texte à ajouter
+            metadata: Métadonnées associées au texte
+            
+        Returns:
+            ID du point ajouté
+        """
+        try:
+            # Configurer la collection si nécessaire
+            if collection_name != self.collection_name:
+                logger.warning(f"Collection demandée ({collection_name}) différente de la collection actuelle ({self.collection_name})")
+                # On garde la collection actuelle pour simplifier
+                
+            # Créer un dictionnaire de métadonnées si non fourni
+            if metadata is None:
+                metadata = {}
+                
+            # Ajouter l'ID du document aux métadonnées
+            metadata["document_id"] = document_id
+            
+            # Créer le point
+            point = await self._create_point(text, metadata)
+            
+            if not point:
+                logger.error("Échec de la création du point")
+                return ""
+                
+            # Ajouter le point à Qdrant
+            operation_info = await asyncio.to_thread(
+                self.client.upsert,
+                collection_name=self.collection_name,
+                points=[point],
+                wait=True
+            )
+            
+            if operation_info and operation_info.status == "completed":
+                logger.info(f"Point ajouté avec succès: {point.id}")
+                return str(point.id)
+            else:
+                logger.error(f"Échec de l'ajout du point: {operation_info}")
+                return ""
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de l'ajout du texte: {str(e)}")
+            return ""
+
     async def _create_point(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> Optional[PointStruct]:
         """Crée un point pour Qdrant à partir d'un texte et de ses métadonnées."""
         try:
@@ -174,14 +226,16 @@ class VectorStore:
                 return None
             
             embedding = embeddings[0]
-            if not isinstance(embedding, np.ndarray):
+            if isinstance(embedding, np.ndarray):
+                embedding = embedding.tolist()
+            elif not isinstance(embedding, list):
                 logger.error(f"Type d'embedding invalide: {type(embedding)}")
                 return None
             
             # Créer le point
             point_id = str(uuid.uuid4())
             payload = {
-                "text": text,
+                "content": text,  # Changé de "text" à "content"
                 "vector_size": len(embedding),
                 "timestamp": time.time()
             }
@@ -190,7 +244,7 @@ class VectorStore:
                 
             point = PointStruct(
                 id=point_id,
-                vector=embedding.tolist(),
+                vector=embedding,  # Déjà une liste, pas besoin de tolist()
                 payload=payload
             )
             
@@ -220,9 +274,10 @@ class VectorStore:
         try:
             # Générer l'embedding de la requête
             logger.info(f"Génération de l'embedding pour la requête: {query}")
-            query_embedding = await self.llm_interface.get_embedding(query)
-            if query_embedding is None:  # Vérification plus précise
+            embeddings = await self.llm_interface.get_embeddings([query])
+            if not embeddings or len(embeddings) == 0:
                 raise ValueError("Échec de la génération de l'embedding pour la requête")
+            query_embedding = np.array(embeddings[0])
             
             # Effectuer la recherche de manière synchrone
             logger.info("Recherche des documents similaires")
@@ -238,12 +293,18 @@ class VectorStore:
             # Formater les résultats
             formatted_results = []
             for res in results:
-                formatted_results.append({
-                    "id": res.id,
-                    "score": res.score,
-                    "text": res.payload.get("text", ""),
-                    "metadata": {k: v for k, v in res.payload.items() if k != "text"}
-                })
+                try:
+                    payload = res.payload or {}
+                    formatted_results.append({
+                        "id": str(res.id),
+                        "score": float(res.score),
+                        "payload": payload,
+                        "text": payload.get("content", ""),
+                        "metadata": {k: v for k, v in payload.items() if k != "content"}
+                    })
+                except Exception as e:
+                    logger.error(f"Erreur lors du formatage d'un résultat: {str(e)}")
+                    continue
             
             return formatted_results
             
@@ -254,51 +315,37 @@ class VectorStore:
     async def similarity_search(
         self,
         query: str,
-        k: int = 4,
-        filter: Optional[Dict[str, Any]] = None
+        k: int = 6,  # Augmenté de 4 à 6
+        filter: Optional[Dict[str, Any]] = None,
+        score_threshold: float = 0.5  # Réduit de 0.6 à 0.5
     ) -> List[Dict[str, Any]]:
         """
         Effectue une recherche sémantique dans la collection.
         Retourne les k documents les plus pertinents.
         """
         try:
-            # Générer l'embedding pour la requête
-            embeddings = await self.llm_interface.get_embeddings([query])
-            if not embeddings:
-                raise ValueError("Échec de la génération de l'embedding pour la requête")
-            query_embedding = embeddings[0]
-
-            # Préparer le filtre
-            search_filter = None
-            if filter:
-                search_filter = Filter(**filter)
-
-            # Effectuer la recherche de manière synchrone
-            results = await asyncio.to_thread(
-                self.client.search,
-                collection_name=self.collection_name,
-                query_vector=query_embedding.tolist(),
-                limit=k,
-                query_filter=search_filter,
-                with_payload=True
-            )
-
-            # Formater les résultats
-            formatted_results = []
-            for res in results:
-                result = {
-                    'id': res.id,
-                    'score': res.score,
-                    'text': res.payload.get('text', ''),
-                    'metadata': {k: v for k, v in res.payload.items() if k != 'text'}
-                }
-                formatted_results.append(result)
-
-            return formatted_results
-
+            # Rechercher les documents similaires
+            results = await self.search(query, filter=filter, limit=k * 2)  # On récupère plus de résultats pour filtrer
+            
+            # Filtrer les résultats par score de similarité
+            filtered_results = [
+                doc for doc in results 
+                if doc["score"] >= score_threshold
+            ]
+            
+            # Trier par score et prendre les k premiers
+            sorted_results = sorted(filtered_results, key=lambda x: x["score"], reverse=True)[:k]
+            
+            # Enrichir les résultats avec des métadonnées utiles
+            for result in sorted_results:
+                result["content"] = result["text"]  # Pour la compatibilité
+                result["relevance"] = f"{int(result['score'] * 100)}%"
+                
+            return sorted_results
+            
         except Exception as e:
-            logger.error(f"Erreur lors de la recherche sémantique: {str(e)}")
-            raise
+            logger.error(f"Erreur lors de la recherche: {str(e)}")
+            return []
 
     async def get_embedding(self, text: str) -> np.ndarray:
         """Génère un embedding pour le texte donné via VoyageAI."""
@@ -308,9 +355,13 @@ class VectorStore:
             if self.llm_interface is None:
                 raise ValueError("LLMInterface n'est pas initialisé")
             
-            embedding = await self.llm_interface.get_embedding(text)
+            embeddings = await self.llm_interface.get_embeddings([text])
+            if not embeddings or len(embeddings) == 0:
+                raise ValueError("Aucun embedding généré")
+                
+            embedding = embeddings[0]
             logger.info(f"Embedding généré avec succès, dimension: {len(embedding)}")
-            return embedding
+            return np.array(embedding)
             
         except Exception as e:
             logger.error(f"Erreur lors de la génération de l'embedding: {str(e)}")
@@ -352,7 +403,7 @@ class VectorStore:
                 
                 # Ajouter le texte aux métadonnées
                 payload = {
-                    "text": text,
+                    "content": text,  # Changé de "text" à "content"
                     **meta
                 }
                 
@@ -397,16 +448,97 @@ class VectorStore:
             logger.error(f"Erreur lors de la suppression des documents: {str(e)}")
             return False
 
-    def get_collection_info(self) -> Dict[str, Any]:
+    async def get_collection_info(self) -> Dict[str, Any]:
         """Récupère les informations de la collection Qdrant."""
         try:
-            info = self.client.get_collection(self.collection_name)
-            return {
-                "vectors_count": info.vectors_count,
-                "indexed_vectors_count": info.indexed_vectors_count,
-                "status": info.status,
-                "optimization_status": info.optimizer_status
-            }
+            collection_info = await asyncio.to_thread(
+                self.client.get_collection,
+                collection_name=self.collection_name
+            )
+            return collection_info.model_dump()
         except Exception as e:
             logger.error(f"Erreur lors de la récupération des informations de la collection: {str(e)}")
             return {}
+    
+    async def get_collection_statistics(self) -> Dict[str, Any]:
+        """
+        Récupère des statistiques détaillées sur la collection et les documents indexés.
+        
+        Returns:
+            Un dictionnaire contenant des statistiques détaillées:
+            - vectors_count: Nombre total de vecteurs
+            - indexed_vectors_count: Nombre de vecteurs indexés
+            - documents_count: Nombre de documents uniques
+            - points_count: Nombre de points indexés
+            - avg_vectors_per_document: Moyenne de vecteurs par document
+            - collection_name: Nom de la collection
+            - created_at: Date de création de la collection (si disponible)
+            - metadata: Métadonnées supplémentaires
+        """
+        try:
+            # Récupérer les informations de base de la collection
+            collection_info = await self.get_collection_info()
+            
+            # Récupérer le nombre de points/vecteurs et vecteurs indexés
+            vectors_count = collection_info.get("vectors_count", 0)
+            indexed_vectors_count = collection_info.get("indexed_vectors_count", 0)
+            
+            # Récupérer les métadonnées uniques pour estimer le nombre de documents
+            scroll_result = await asyncio.to_thread(
+                self.client.scroll,
+                collection_name=self.collection_name,
+                limit=10000,  # Récupérer un maximum de 10000 points
+                with_payload=True,
+                with_vectors=False  # Pas besoin des vecteurs
+            )
+            
+            # Extraire les métadonnées pour compter les documents uniques
+            unique_documents = set()
+            if scroll_result and scroll_result[0]:
+                for point in scroll_result[0]:
+                    if point.payload and "document_id" in point.payload:
+                        unique_documents.add(point.payload["document_id"])
+                    elif point.payload and "filename" in point.payload:
+                        unique_documents.add(point.payload["filename"])
+            
+            documents_count = len(unique_documents)
+            
+            # Calculer la moyenne de vecteurs par document
+            avg_vectors_per_document = 0
+            if documents_count > 0:
+                avg_vectors_per_document = vectors_count / documents_count
+            
+            # Compiler les statistiques
+            stats = {
+                "vectors_count": vectors_count,
+                "indexed_vectors_count": indexed_vectors_count,
+                "indexing_percentage": round((indexed_vectors_count / vectors_count * 100) if vectors_count > 0 else 0, 1),
+                "documents_count": documents_count,
+                "points_count": vectors_count,  # Synonyme, pour compatibilité
+                "avg_vectors_per_document": round(avg_vectors_per_document, 2),
+                "collection_name": self.collection_name,
+                "is_empty": vectors_count == 0,
+                "is_fully_indexed": indexed_vectors_count >= vectors_count,
+                "metadata": {
+                    "vector_size": collection_info.get("config", {}).get("params", {}).get("vectors", {}).get("size", 0),
+                    "distance": collection_info.get("config", {}).get("params", {}).get("vectors", {}).get("distance", "unknown")
+                }
+            }
+            
+            logger.info(f"Statistiques de la collection récupérées: {stats}")
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération des statistiques détaillées: {str(e)}", exc_info=True)
+            return {
+                "vectors_count": 0,
+                "indexed_vectors_count": 0,
+                "indexing_percentage": 0,
+                "documents_count": 0,
+                "points_count": 0,
+                "avg_vectors_per_document": 0,
+                "collection_name": self.collection_name,
+                "is_empty": True,
+                "is_fully_indexed": False,
+                "error": str(e)
+            }

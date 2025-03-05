@@ -50,7 +50,17 @@ class Settings(BaseModel):
     MAX_MEMORY_MB: int = int(os.getenv("MAX_MEMORY_MB", "1024"))
     
     # Security
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:8000"]
+    ALLOWED_ORIGINS: List[str] = [
+        "http://localhost:8000",
+        "http://localhost:3001",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:3001",
+    ]
+    
+    # Server Configuration
+    HOST: str = os.getenv("HOST", "0.0.0.0")
+    PORT: int = int(os.getenv("PORT", "8000"))
+    DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
     
     # Paths
     UPLOAD_DIR: Path = Path("uploads").absolute()

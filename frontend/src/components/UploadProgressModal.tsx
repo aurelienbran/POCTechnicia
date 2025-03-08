@@ -146,6 +146,43 @@ const UploadProgressModal: React.FC<UploadProgressModalProps> = ({
         </div>
         
         <div className="p-6">
+          {/* Current file and status summary */}
+          <div className="mb-6 bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-800">
+                Fichier actuel
+              </h3>
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                status.in_progress ? 'bg-blue-100 text-blue-700' : 
+                status.error_occurred ? 'bg-red-100 text-red-700' : 
+                status.current_step === 'completed' ? 'bg-green-100 text-green-700' : 
+                'bg-gray-100 text-gray-700'
+              }`}>
+                {status.in_progress ? 'En cours' : 
+                 status.error_occurred ? 'Erreur' : 
+                 status.current_step === 'completed' ? 'Terminé' : 
+                 'En attente'}
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 truncate font-mono bg-white p-1 rounded border border-gray-200">
+              {status.current_file || 'Aucun fichier sélectionné'}
+            </p>
+
+            {status.current_step === 'indexing' && (
+              <div className="mt-2 text-xs text-gray-500">
+                <span className="font-semibold">Progrès de l'indexation: </span>
+                {status.indexed_chunks || 0}/{status.total_chunks || 0} fragments traités
+              </div>
+            )}
+
+            {status.ocr_in_progress && (
+              <div className="mt-2 text-xs text-gray-500">
+                <span className="font-semibold">Progrès OCR: </span>
+                Page {status.ocr_current_page || 0}/{status.ocr_total_pages || 0}
+              </div>
+            )}
+          </div>
+
           {/* Barre de progression globale */}
           <div className="mb-6">
             <div className="flex justify-between mb-1">
@@ -158,7 +195,8 @@ const UploadProgressModal: React.FC<UploadProgressModalProps> = ({
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2.5">
               <div 
-                className={`h-2.5 rounded-full ${status.error_occurred ? 'bg-red-500' : 'bg-blue-500'}`}
+                className={`h-2.5 rounded-full ${status.error_occurred ? 'bg-red-500' : 
+                  status.current_step === 'completed' ? 'bg-green-500' : 'bg-blue-500'}`}
                 style={{ width: `${getOverallProgress()}%` }}
               ></div>
             </div>
@@ -215,19 +253,37 @@ const UploadProgressModal: React.FC<UploadProgressModalProps> = ({
           
           {/* Affichage des logs */}
           <div className="mb-4">
-            <button 
-              className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
-              onClick={() => setShowLogs(!showLogs)}
-            >
-              {showLogs ? 'Masquer les logs' : 'Afficher les logs détaillés'}
-            </button>
+            <div className="flex justify-between items-center mb-2">
+              <button 
+                className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                onClick={() => setShowLogs(!showLogs)}
+              >
+                {showLogs ? 'Masquer les logs' : 'Afficher les logs détaillés'}
+              </button>
+              
+              <span className="text-xs text-gray-500">
+                {status.ocr_logs?.length || 0} entrées de log
+              </span>
+            </div>
+            
+            {/* Latest log entry summary */}
+            {!showLogs && status.ocr_logs && status.ocr_logs.length > 0 && (
+              <div className="bg-gray-50 border border-gray-200 rounded-md p-2 mb-2">
+                <p className="text-xs font-mono text-gray-600 truncate">
+                  {status.ocr_logs[status.ocr_logs.length - 1]}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Cliquez sur "Afficher les logs détaillés" pour voir tous les logs
+                </p>
+              </div>
+            )}
             
             {showLogs && status.ocr_logs && status.ocr_logs.length > 0 && (
               <div className="mt-3">
                 <LogViewer 
-                  logs={status.ocr_logs} 
+                  logs={status.ocr_logs.slice(-50)} // Show only the last 50 logs to prevent overwhelming
                   maxHeight="200px" 
-                  title="Logs OCR"
+                  title={`Logs OCR (${Math.min(status.ocr_logs.length, 50)} dernières entrées sur ${status.ocr_logs.length})`}
                 />
               </div>
             )}

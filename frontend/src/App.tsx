@@ -124,6 +124,19 @@ function App() {
     }
   };
 
+  // Create a function to throttle status checks based on process stage
+  const getStatusCheckDelay = (currentStatus: string, progress: number) => {
+    // If we're in OCR or almost done with the process, check less frequently
+    if (currentStatus === 'ocr') {
+      return 5000; // 5 seconds
+    } else if (currentStatus === 'indexing' && progress > 80) {
+      return 4000; // 4 seconds
+    } else if (currentStatus === 'indexing' && progress > 50) {
+      return 3000; // 3 seconds
+    }
+    return 2000; // Default: 2 seconds
+  };
+
   const checkIndexingStatus = async () => {
     try {
       if (useMockApi) {
@@ -203,18 +216,19 @@ function App() {
             progress = Math.min(60 + (ocrProgress * 0.4), 100);
           }
           
-          // Continuer à vérifier le statut
-          setTimeout(checkIndexingStatus, 2000);
+          // Continuer à vérifier le statut avec une fréquence adaptative
+          const delay = getStatusCheckDelay(currentStep, progress);
+          setTimeout(checkIndexingStatus, delay);
         } else if (data.error || data.error_occurred) {
           status = 'error';
           addSystemMessage(`Erreur d'indexation: ${data.error || data.error_message || 'Une erreur inconnue est survenue'}`);
-          setShowUploadModal(false);
+          // Keep modal open to show the error - user can close it manually
         } else {
           status = 'completed';
           progress = 100;
           fetchStats();
           addSystemMessage('Document indexé avec succès!');
-          setShowUploadModal(false);
+          // Keep modal open to show completion - user can close it manually
         }
         
         setIndexingStatus({
@@ -231,7 +245,12 @@ function App() {
     } catch (error) {
       console.error('Error checking indexing status:', error);
       // En cas d'erreur, arrêter la vérification et afficher un message
-      setShowUploadModal(false);
+      // Keep modal open but update status to error
+      setIndexingStatus(prev => ({
+        ...prev,
+        status: 'error',
+        message: "Erreur lors de la vérification du statut d'indexation."
+      }));
       addSystemMessage("Erreur lors de la vérification du statut d'indexation.");
     }
   };
@@ -670,13 +689,13 @@ function App() {
     } else if (data.error || data.error_occurred) {
       status = 'error';
       addSystemMessage(`Erreur d'indexation: ${data.error_message || data.error || 'Une erreur inconnue est survenue'}`);
-      setShowUploadModal(false);
+      // Keep modal open to show the error
     } else if (data.completed) {
       status = 'completed';
       progress = 100;
       fetchStats();
       addSystemMessage('Document indexé avec succès!');
-      setShowUploadModal(false);
+      // Keep modal open to show completion
     }
     
     setIndexingStatus({

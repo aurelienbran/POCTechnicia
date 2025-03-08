@@ -18,8 +18,8 @@ class MinimalAnthropicClient:
         # Création d'un client HTTP sans les options problématiques
         self.http = httpx.Client(timeout=60.0)
         
-    def messages_create(self, model, messages, max_tokens=1000, temperature=0):
-        """Version minimale de l'API de messages."""
+    def messages_create(self, model, messages, max_tokens=1000, temperature=0, system=None):
+        """Version minimale de l'API de messages avec support pour system prompt."""
         import json
         headers = {
             "x-api-key": self.api_key,
@@ -27,6 +27,7 @@ class MinimalAnthropicClient:
             "content-type": "application/json"
         }
         
+        # Construire le corps de la requête
         data = {
             "model": model,
             "messages": messages,
@@ -34,6 +35,11 @@ class MinimalAnthropicClient:
             "temperature": temperature
         }
         
+        # Ajouter le system prompt s'il est fourni
+        if system:
+            data["system"] = system
+            
+        # Envoyer la requête à l'API
         response = self.http.post(
             "https://api.anthropic.com/v1/messages",
             headers=headers,

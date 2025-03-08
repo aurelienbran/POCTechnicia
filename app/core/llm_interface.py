@@ -186,12 +186,13 @@ class LLMInterface:
     async def _call_claude_simple(self, query: str):
         """Génère une réponse pour une question simple."""
         try:
-            # Utiliser notre client personnalisé (sans paramètre system)
+            # Utiliser notre client personnalisé avec le system prompt
             response = await asyncio.to_thread(
                 self.client.messages_create,
                 model=self.model,
                 max_tokens=1000,
                 temperature=0.7,  # Plus de personnalité pour les réponses simples
+                system=self.SYSTEM_PROMPT,  # Ajouter le system prompt
                 messages=[{"role": "user", "content": query}]
             )
             
@@ -208,12 +209,13 @@ class LLMInterface:
         """Génère une réponse technique basée sur le contexte."""
         try:
             formatted_context = self._format_technical_context(context_docs)
-            # Utiliser notre client personnalisé (sans paramètre system)
+            # Utiliser notre client personnalisé avec le system prompt
             response = await asyncio.to_thread(
                 self.client.messages_create,
                 model=self.model,
                 max_tokens=2000,
                 temperature=0.6,  # Augmenté de 0.5 à 0.6 pour un ton plus naturel
+                system=self.SYSTEM_PROMPT,  # Ajouter le system prompt
                 messages=[{
                     "role": "user",
                     "content": f"Contexte :\n{formatted_context}\n\nQuestion : {query}"
@@ -375,12 +377,13 @@ Documents :
             
             Génère un résumé concis et informatif de ce document."""
 
-            # Appeler Claude avec notre client personnalisé
+            # Appeler Claude avec notre client personnalisé et le system prompt
             message = await asyncio.to_thread(
                 self.client.messages_create,
                 model=self.model,
                 max_tokens=max_length,
                 temperature=0.7,
+                system=self.SYSTEM_PROMPT,  # Ajouter le system prompt
                 messages=[
                     {
                         "role": "user",
@@ -414,12 +417,13 @@ Documents :
             
             Format attendu : uniquement les 3 questions, une par ligne, sans numérotation ni préfixe."""
 
-            # Appeler Claude avec notre client personnalisé
+            # Appeler Claude avec notre client personnalisé et le system prompt
             message = await asyncio.to_thread(
                 self.client.messages_create,
                 model=self.model,
                 max_tokens=500,
                 temperature=0.7,
+                system=self.SYSTEM_PROMPT,  # Ajouter le system prompt
                 messages=[
                     {
                         "role": "user",

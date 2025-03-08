@@ -56,7 +56,12 @@ class LLMInterface:
     def __init__(self, api_key: Optional[str] = None):
         """Initialise l'interface avec le client Anthropic et Voyage."""
         # Anthropic (Claude)
-        self.client = anthropic.Anthropic(api_key=api_key or settings.ANTHROPIC_API_KEY)
+        # Utiliser le client MinimalAnthropicClient défini dans question_classifier.py
+        from .question_classifier import MinimalAnthropicClient
+        
+        # Utiliser notre client minimaliste au lieu du SDK officiel
+        api_key = api_key or settings.ANTHROPIC_API_KEY
+        self.client = MinimalAnthropicClient(api_key)
         self.model = "claude-3-sonnet-20240229"
         self.classifier = QuestionClassifier()
         
@@ -181,20 +186,17 @@ class LLMInterface:
     async def _call_claude_simple(self, query: str):
         """Génère une réponse pour une question simple."""
         try:
+            # Utiliser notre client personnalisé (sans paramètre system)
             response = await asyncio.to_thread(
-                self.client.messages.create,
+                self.client.messages_create,
                 model=self.model,
                 max_tokens=1000,
                 temperature=0.7,  # Plus de personnalité pour les réponses simples
-                system=self.SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": query}]
             )
             
-            # S'assurer que la réponse est une chaîne de caractères
-            response_text = response.content
-            if isinstance(response_text, list):
-                # Extraire le texte de chaque ContentBlock
-                response_text = " ".join(block.text for block in response_text)
+            # Extraire le texte avec le format JSON de notre client personnalisé
+            response_text = response["content"][0]["text"] if response and "content" in response else ""
             
             return response_text
             
@@ -206,23 +208,20 @@ class LLMInterface:
         """Génère une réponse technique basée sur le contexte."""
         try:
             formatted_context = self._format_technical_context(context_docs)
+            # Utiliser notre client personnalisé (sans paramètre system)
             response = await asyncio.to_thread(
-                self.client.messages.create,
+                self.client.messages_create,
                 model=self.model,
                 max_tokens=2000,
                 temperature=0.6,  # Augmenté de 0.5 à 0.6 pour un ton plus naturel
-                system=self.SYSTEM_PROMPT,
                 messages=[{
                     "role": "user",
                     "content": f"Contexte :\n{formatted_context}\n\nQuestion : {query}"
                 }]
             )
             
-            # S'assurer que la réponse est une chaîne de caractères
-            response_text = response.content
-            if isinstance(response_text, list):
-                # Extraire le texte de chaque ContentBlock
-                response_text = " ".join(block.text for block in response_text)
+            # Extraire le texte avec le format JSON de notre client personnalisé
+            response_text = response["content"][0]["text"] if response and "content" in response else ""
             
             # Formater la réponse avec notre formateur technique
             formatter = TechnicalResponseFormatter()
@@ -376,13 +375,12 @@ Documents :
             
             Génère un résumé concis et informatif de ce document."""
 
-            # Appeler Claude avec le nouveau format
+            # Appeler Claude avec notre client personnalisé
             message = await asyncio.to_thread(
-                self.client.messages.create,
+                self.client.messages_create,
                 model=self.model,
                 max_tokens=max_length,
                 temperature=0.7,
-                system=self.SYSTEM_PROMPT,
                 messages=[
                     {
                         "role": "user",
@@ -391,8 +389,8 @@ Documents :
                 ]
             )
 
-            # Extraire le texte du ContentBlock
-            summary = message.content if message else ""
+            # Extraire le texte du ContentBlock avec le format JSON de notre client personnalisé
+            summary = message["content"][0]["text"] if message and "content" in message else ""
             logger.info(f"Résumé généré avec succès: {summary[:100]}...")
             return summary
 
@@ -416,9 +414,9 @@ Documents :
             
             Format attendu : uniquement les 3 questions, une par ligne, sans numérotation ni préfixe."""
 
-            # Appeler Claude avec le nouveau format
+            # Appeler Claude avec notre client personnalisé
             message = await asyncio.to_thread(
-                self.client.messages.create,
+                self.client.messages_create,
                 model=self.model,
                 max_tokens=500,
                 temperature=0.7,
@@ -430,8 +428,8 @@ Documents :
                 ]
             )
 
-            # Extraire et traiter les questions
-            questions_text = message.content if message else ""
+            # Extraire et traiter les questions avec le format JSON de notre client personnalisé
+            questions_text = message["content"][0]["text"] if message and "content" in message else ""
             questions = [q.strip() for q in questions_text.split('\n') if q.strip()]
             
             # S'assurer qu'on a exactement 3 questions

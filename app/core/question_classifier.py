@@ -11,10 +11,46 @@ class QuestionType(Enum):
     SIMPLE = 1      # salutations, présentations, remerciements
     TECHNIQUE = 2  # questions spécifiques au projet
 
+class MinimalAnthropicClient:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        import httpx
+        # Création d'un client HTTP sans les options problématiques
+        self.http = httpx.Client(timeout=60.0)
+        
+    def messages_create(self, model, messages, max_tokens=1000, temperature=0):
+        """Version minimale de l'API de messages."""
+        import json
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json"
+        }
+        
+        data = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature
+        }
+        
+        response = self.http.post(
+            "https://api.anthropic.com/v1/messages",
+            headers=headers,
+            json=data
+        )
+        
+        if response.status_code != 200:
+            logger.error(f"Erreur API Anthropic: {response.status_code} - {response.text}")
+            raise Exception(f"Erreur API Anthropic: {response.status_code}")
+            
+        return response.json()
+
 class QuestionClassifier:
     def __init__(self):
         """Initialise le classificateur avec le client Anthropic."""
-        self.client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        # Utiliser notre client minimaliste au lieu du SDK officiel
+        self.client = MinimalAnthropicClient(settings.ANTHROPIC_API_KEY)
         self.model = "claude-3-sonnet-20240229"
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
@@ -45,9 +81,9 @@ Question : {question}
 
 Réponds uniquement par un mot : SIMPLE ou TECHNIQUE"""
 
-            # Appeler Claude
+            # Appeler Claude avec notre client personnalisé
             response = await asyncio.to_thread(
-                self.client.messages.create,
+                self.client.messages_create,
                 model=self.model,
                 max_tokens=10,
                 temperature=0,
@@ -56,8 +92,8 @@ Réponds uniquement par un mot : SIMPLE ou TECHNIQUE"""
                 ]
             )
 
-            # Extraire et valider la réponse
-            answer = response.content[0].text.strip().upper()
+            # Extraire et valider la réponse - format personnalisé
+            answer = response["content"][0]["text"].strip().upper()
             if answer not in ["SIMPLE", "TECHNIQUE"]:
                 logger.warning(f"Réponse inattendue de Claude: {answer}, utilisation de TECHNIQUE par défaut")
                 return QuestionType.TECHNIQUE

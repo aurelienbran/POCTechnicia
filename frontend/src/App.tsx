@@ -237,8 +237,12 @@ function App() {
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    // For now, just use the first file to maintain compatibility with existing code
+    // In a full implementation, we would process each file according to the queue design
+    const file = files[0];
     
     // Validate file type
     if (file.type !== 'application/pdf') {
@@ -252,6 +256,12 @@ function App() {
       setError('La taille du fichier ne doit pas dépasser 150 MB.');
       setTimeout(() => setError(null), 3000);
       return;
+    }
+    
+    // Show upload progress for multiple files
+    const totalFiles = files.length;
+    if (totalFiles > 1) {
+      addSystemMessage(`${totalFiles} fichiers sélectionnés. Traitement du premier fichier: ${file.name}`);
     }
     
     setShowUploadModal(true);
@@ -748,7 +758,8 @@ function App() {
               type="file" 
               ref={fileInputRef} 
               className="hidden" 
-              accept=".pdf" 
+              accept=".pdf"
+              multiple 
               onChange={handleFileUpload} 
             />
           </button>

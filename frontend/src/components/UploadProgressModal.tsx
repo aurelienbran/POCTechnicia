@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, Check, RefreshCw, FileText, Layers, Search } from 'lucide-react';
+import { X, AlertTriangle, Check, RefreshCw, FileText, Layers, Search, Clock } from 'lucide-react';
 import LogViewer from './LogViewer';
 
 interface UploadProgressModalProps {
@@ -20,6 +20,7 @@ interface UploadProgressModalProps {
     ocr_logs?: string[];
     [key: string]: any;
   };
+  onRefresh?: () => void; // Optional callback for manual refresh
 }
 
 /**
@@ -29,9 +30,16 @@ interface UploadProgressModalProps {
 const UploadProgressModal: React.FC<UploadProgressModalProps> = ({ 
   isOpen, 
   onClose, 
-  status 
+  status,
+  onRefresh
 }) => {
   const [showLogs, setShowLogs] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
+  
+  // Update the last update timestamp whenever status changes
+  useEffect(() => {
+    setLastUpdateTime(new Date());
+  }, [status]);
   
   // Empêcher la fermeture si le traitement est en cours
   const handleClose = () => {
@@ -153,15 +161,19 @@ const UploadProgressModal: React.FC<UploadProgressModalProps> = ({
                 Fichier actuel
               </h3>
               <span className={`text-xs px-2 py-1 rounded-full ${
-                status.in_progress ? 'bg-blue-100 text-blue-700' : 
+                status.current_step === 'uploading' ? 'bg-blue-100 text-blue-700' : 
+                status.current_step === 'ocr' ? 'bg-purple-100 text-purple-700' : 
+                status.current_step === 'indexing' ? 'bg-indigo-100 text-indigo-700' : 
                 status.error_occurred ? 'bg-red-100 text-red-700' : 
                 status.current_step === 'completed' ? 'bg-green-100 text-green-700' : 
                 'bg-gray-100 text-gray-700'
               }`}>
-                {status.in_progress ? 'En cours' : 
+                {status.current_step === 'uploading' ? 'Téléchargement' : 
+                 status.current_step === 'ocr' ? 'OCR en cours' : 
+                 status.current_step === 'indexing' ? 'Indexation' : 
                  status.error_occurred ? 'Erreur' : 
                  status.current_step === 'completed' ? 'Terminé' : 
-                 'En attente'}
+                 status.in_progress ? 'En cours' : 'En attente'}
               </span>
             </div>
             <p className="text-sm text-gray-600 truncate font-mono bg-white p-1 rounded border border-gray-200">
@@ -199,6 +211,26 @@ const UploadProgressModal: React.FC<UploadProgressModalProps> = ({
                   status.current_step === 'completed' ? 'bg-green-500' : 'bg-blue-500'}`}
                 style={{ width: `${getOverallProgress()}%` }}
               ></div>
+            </div>
+            
+            {/* Last update time and refresh button */}
+            <div className="flex items-center mt-2 text-xs text-gray-500 justify-end">
+              <Clock size={12} className="mr-1" />
+              <span>Dernière mise à jour: {lastUpdateTime.toLocaleTimeString()}</span>
+              
+              {onRefresh && (
+                <button 
+                  className="ml-3 flex items-center text-blue-500 hover:text-blue-700"
+                  onClick={() => {
+                    onRefresh();
+                    setLastUpdateTime(new Date());
+                  }}
+                  title="Rafraîchir le statut manuellement"
+                >
+                  <RefreshCw size={12} className="mr-1" />
+                  Rafraîchir
+                </button>
+              )}
             </div>
           </div>
           

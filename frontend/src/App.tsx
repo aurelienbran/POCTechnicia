@@ -223,12 +223,16 @@ function App() {
           status = 'error';
           addSystemMessage(`Erreur d'indexation: ${data.error || data.error_message || 'Une erreur inconnue est survenue'}`);
           // Keep modal open to show the error - user can close it manually
-        } else {
+        } else if (data.completed === true) {
+          // Only mark as completed if server explicitly says completed=true
           status = 'completed';
           progress = 100;
           fetchStats();
           addSystemMessage('Document indexé avec succès!');
           // Keep modal open to show completion - user can close it manually
+          
+          // Perform one final stats update in a few seconds
+          setTimeout(fetchStats, 5000);
         }
         
         setIndexingStatus({
@@ -244,14 +248,27 @@ function App() {
       }
     } catch (error) {
       console.error('Error checking indexing status:', error);
-      // En cas d'erreur, arrêter la vérification et afficher un message
-      // Keep modal open but update status to error
+      // En cas d'erreur, continuer à vérifier le statut après un délai plus long
+      // mais afficher un message d'avertissement
       setIndexingStatus(prev => ({
         ...prev,
-        status: 'error',
-        message: "Erreur lors de la vérification du statut d'indexation."
+        status: prev.status === 'error' ? 'error' : 'processing', // Preserve existing error state
+        message: "Erreur temporaire lors de la vérification du statut d'indexation."
       }));
-      addSystemMessage("Erreur lors de la vérification du statut d'indexation.");
+      
+      // Ne pas inonder le chat avec des messages d'erreur
+      // Vérifier si le dernier message était déjà une erreur d'indexation
+      const lastMessage = messages[messages.length - 1];
+      const isLastMessageError = lastMessage && 
+                               lastMessage.type === 'system' && 
+                               lastMessage.content.includes("vérification du statut");
+      
+      if (!isLastMessageError) {
+        addSystemMessage("Problème temporaire lors de la vérification du statut d'indexation. Nouvelle tentative en cours...");
+      }
+      
+      // Continue polling after a longer delay
+      setTimeout(checkIndexingStatus, 5000);
     }
   };
 
@@ -690,11 +707,21 @@ function App() {
       status = 'error';
       addSystemMessage(`Erreur d'indexation: ${data.error_message || data.error || 'Une erreur inconnue est survenue'}`);
       // Keep modal open to show the error
-    } else if (data.completed) {
+    } else if (data.completed === true) {
       status = 'completed';
       progress = 100;
       fetchStats();
-      addSystemMessage('Document indexé avec succès!');
+      
+      // Vérifier si on a déjà affiché un message de succès récemment
+      const lastMessage = messages[messages.length - 1];
+      const lastMessageIsSuccess = lastMessage && 
+                                   lastMessage.type === 'system' && 
+                                   lastMessage.content.includes('indexé avec succès');
+      
+      if (!lastMessageIsSuccess) {
+        addSystemMessage('Document indexé avec succès!');
+      }
+      
       // Keep modal open to show completion
     }
     
@@ -881,6 +908,7 @@ function App() {
             indexed_chunks: 0,
             total_chunks: 0
           }}
+          onRefresh={checkIndexingStatus}
         />
       )}
       

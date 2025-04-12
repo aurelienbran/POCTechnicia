@@ -1,0 +1,556 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Historique des tâches - Tableau de Bord OCR{% endblock %}
+
+{% block page_title %}Historique des tâches OCR{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-primary" id="refresh-history">
+        <i class="fas fa-sync-alt"></i> Rafraîchir
+    </button>
+</div>
+<div class="btn-group me-2">
+    <a href="{{ url_for('dashboard_export_history') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-file-export"></i> Exporter
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Filtres et recherche -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-filter me-1"></i>
+        Filtres
+    </div>
+    <div class="card-body">
+        <form id="history-filter-form" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label for="date-from" class="form-label">Du</label>
+                <input type="date" class="form-control" id="date-from" name="date_from">
+            </div>
+            <div class="col-md-2">
+                <label for="date-to" class="form-label">Au</label>
+                <input type="date" class="form-control" id="date-to" name="date_to">
+            </div>
+            <div class="col-md-2">
+                <label for="provider-filter" class="form-label">Fournisseur OCR</label>
+                <select class="form-select" id="provider-filter" name="provider">
+                    <option value="">Tous</option>
+                    {% for provider in ocr_providers %}
+                    <option value="{{ provider }}">{{ provider }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="status-filter" class="form-label">État</label>
+                <select class="form-select" id="status-filter" name="status">
+                    <option value="">Tous</option>
+                    <option value="completed" {% if request.args.get('state') == 'completed' %}selected{% endif %}>Terminé</option>
+                    <option value="failed" {% if request.args.get('state') == 'failed' %}selected{% endif %}>Échec</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="search-input" class="form-label">Recherche</label>
+                <input type="text" class="form-control" id="search-input" name="search" placeholder="Nom ou ID de tâche">
+            </div>
+            <div class="col-md-2 d-flex">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search"></i> Filtrer
+                </button>
+                <button type="reset" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Réinitialiser
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Statistiques d'historique -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">Tâches terminées</h5>
+                <h2 class="display-4">{{ stats.completed_count }}</h2>
+                <p class="card-text">Tâches OCR terminées avec succès</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">Tâches en erreur</h5>
+                <h2 class="display-4">{{ stats.failed_count }}</h2>
+                <p class="card-text">Tâches OCR ayant échoué</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">Pages traitées</h5>
+                <h2 class="display-4">{{ stats.total_pages }}</h2>
+                <p class="card-text">Total des pages traitées</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">Temps moyen</h5>
+                <h2 class="display-4">{{ stats.avg_processing_time|format_duration }}</h2>
+                <p class="card-text">Temps moyen de traitement</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Graphique d'historique -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-chart-line me-1"></i>
+        Tendances d'utilisation OCR
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-9">
+                <canvas id="historyTrendsChart"></canvas>
+            </div>
+            <div class="col-md-3">
+                <h5 class="mb-3">Répartition par état</h5>
+                <canvas id="statusPieChart"></canvas>
+                
+                <h5 class="mt-4 mb-3">Répartition par fournisseur</h5>
+                <canvas id="providerPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tableau d'historique -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-history me-1"></i>
+            Historique des tâches
+        </div>
+        <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-danger" id="btn-clear-history" {% if not tasks %}disabled{% endif %}>
+                <i class="fas fa-trash me-1"></i> Effacer l'historique
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover" id="history-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom</th>
+                        <th>Document</th>
+                        <th>Méthode OCR</th>
+                        <th>État</th>
+                        <th>Créée le</th>
+                        <th>Terminée le</th>
+                        <th>Temps traitement</th>
+                        <th>Pages</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr data-task-id="{{ task.task_id }}">
+                        <td><small>{{ task.task_id|truncate(8, True, '') }}</small></td>
+                        <td>{{ task.name }}</td>
+                        <td><small>{{ task.document_path|basename }}</small></td>
+                        <td>{{ task.ocr_provider }}</td>
+                        <td><span class="badge bg-{{ task.state|state_color }}">{{ task.state|state_label }}</span></td>
+                        <td>{{ task.created_at|format_datetime }}</td>
+                        <td>{{ task.completed_at|format_datetime }}</td>
+                        <td>{{ task.processing_time|format_duration }}</td>
+                        <td>{{ task.total_pages }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('dashboard_task_detail', task_id=task.task_id) }}" class="btn btn-outline-primary" title="Voir les détails">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if task.output_path and task.state == 'completed' %}
+                                <a href="{{ url_for('download_file', filepath=task.output_path) }}" class="btn btn-outline-success" title="Télécharger le résultat">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                {% endif %}
+                                <button type="button" class="btn btn-outline-info btn-retry-task" data-task-id="{{ task.task_id }}" title="Relancer la tâche">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-delete-task" data-task-id="{{ task.task_id }}" title="Supprimer de l'historique">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center">Aucune tâche trouvée</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if pagination %}
+        <nav aria-label="Pagination de l'historique" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item {% if pagination.page == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('dashboard_history', page=pagination.page-1, **request.args) }}" aria-label="Précédent">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                
+                {% for p in range(max(1, pagination.page-2), min(pagination.pages+1, pagination.page+3)) %}
+                <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('dashboard_history', page=p, **request.args) }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+                
+                <li class="page-item {% if pagination.page == pagination.pages %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('dashboard_history', page=pagination.page+1, **request.args) }}" aria-label="Suivant">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialiser les tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Configuration du bouton de rafraîchissement
+        document.getElementById('refresh-history').addEventListener('click', function() {
+            location.reload();
+        });
+        
+        // Configuration du formulaire de filtre
+        document.getElementById('history-filter-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Construire l'URL avec les paramètres de filtre
+            const formData = new FormData(this);
+            const params = new URLSearchParams();
+            
+            for (const [key, value] of formData.entries()) {
+                if (value) {
+                    params.append(key, value);
+                }
+            }
+            
+            // Rediriger vers la même page avec les nouveaux paramètres
+            window.location.href = `${window.location.pathname}?${params.toString()}`;
+        });
+        
+        // Configuration du bouton de réinitialisation
+        document.querySelector('#history-filter-form button[type="reset"]').addEventListener('click', function() {
+            // Rediriger vers la page sans paramètres
+            window.location.href = window.location.pathname;
+        });
+        
+        // Initialisation des graphiques
+        initHistoryCharts();
+        
+        // Configuration des boutons d'action
+        setupActionButtons();
+    });
+    
+    function setupActionButtons() {
+        // Bouton pour relancer une tâche
+        document.querySelectorAll('.btn-retry-task').forEach(button => {
+            button.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                
+                // Récupérer les détails de la tâche
+                fetch(`/api/dashboard/tasks/${taskId}`)
+                    .then(response => response.json())
+                    .then(task => {
+                        return fetch('/api/dashboard/tasks', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                name: `${task.name} (relance)`,
+                                description: `Relance de la tâche ${task.task_id}`,
+                                document_path: task.document_path,
+                                output_path: task.output_path,
+                                ocr_provider: task.ocr_provider,
+                                metadata: {
+                                    ...task.metadata,
+                                    original_task_id: task.task_id
+                                }
+                            })
+                        });
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                        throw new Error('Erreur lors de la relance de la tâche');
+                    })
+                    .then(data => {
+                        // Rediriger vers les détails de la nouvelle tâche
+                        window.location.href = `/dashboard/tasks/${data.task_id}`;
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        alert('Erreur lors de la relance de la tâche: ' + error.message);
+                    });
+            });
+        });
+        
+        // Bouton pour supprimer une tâche de l'historique
+        document.querySelectorAll('.btn-delete-task').forEach(button => {
+            button.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                
+                if (!confirm('Êtes-vous sûr de vouloir supprimer cette tâche de l\'historique? Cette action est irréversible.')) {
+                    return;
+                }
+                
+                fetch(`/api/dashboard/tasks/${taskId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Supprimer la ligne du tableau
+                        const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
+                        if (row) {
+                            row.remove();
+                        }
+                        
+                        // Vérifier s'il reste des tâches
+                        const remainingRows = document.querySelectorAll('#history-table tbody tr').length;
+                        if (remainingRows === 0) {
+                            // Ajouter une ligne indiquant qu'il n'y a pas de tâches
+                            const tbody = document.querySelector('#history-table tbody');
+                            const emptyRow = document.createElement('tr');
+                            emptyRow.innerHTML = '<td colspan="10" class="text-center">Aucune tâche trouvée</td>';
+                            tbody.appendChild(emptyRow);
+                            
+                            // Désactiver le bouton d'effacement de l'historique
+                            document.getElementById('btn-clear-history').disabled = true;
+                        }
+                    } else {
+                        throw new Error('Erreur lors de la suppression de la tâche');
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert('Erreur lors de la suppression de la tâche: ' + error.message);
+                });
+            });
+        });
+        
+        // Bouton pour effacer tout l'historique
+        const clearHistoryButton = document.getElementById('btn-clear-history');
+        if (clearHistoryButton) {
+            clearHistoryButton.addEventListener('click', function() {
+                if (!confirm('Êtes-vous sûr de vouloir effacer tout l\'historique des tâches? Cette action est irréversible.')) {
+                    return;
+                }
+                
+                fetch('/api/dashboard/tasks/clear-history', {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Recharger la page
+                        location.reload();
+                    } else {
+                        throw new Error('Erreur lors de l\'effacement de l\'historique');
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert('Erreur lors de l\'effacement de l\'historique: ' + error.message);
+                });
+            });
+        }
+    }
+    
+    function initHistoryCharts() {
+        // Données pour les graphiques (à remplacer par des données réelles)
+        const historyData = {
+            labels: {{ chart_data.dates|tojson }},
+            completedTasks: {{ chart_data.completed_counts|tojson }},
+            failedTasks: {{ chart_data.failed_counts|tojson }},
+            totalPages: {{ chart_data.page_counts|tojson }}
+        };
+        
+        // Graphique des tendances
+        const trendsCtx = document.getElementById('historyTrendsChart').getContext('2d');
+        new Chart(trendsCtx, {
+            type: 'line',
+            data: {
+                labels: historyData.labels,
+                datasets: [
+                    {
+                        label: 'Tâches réussies',
+                        data: historyData.completedTasks,
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Tâches échouées',
+                        data: historyData.failedTasks,
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Pages traitées',
+                        data: historyData.totalPages,
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Nombre de tâches'
+                        },
+                        min: 0
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Pages traitées'
+                        },
+                        min: 0,
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Graphique de répartition par état
+        const statusCtx = document.getElementById('statusPieChart').getContext('2d');
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Réussies', 'Échouées'],
+                datasets: [{
+                    data: [{{ stats.completed_count }}, {{ stats.failed_count }}],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.7)',
+                        'rgba(220, 53, 69, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(220, 53, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${context.label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Graphique de répartition par fournisseur
+        const providerData = {{ chart_data.provider_distribution|tojson }};
+        const providerLabels = Object.keys(providerData);
+        const providerValues = Object.values(providerData);
+        
+        const providerCtx = document.getElementById('providerPieChart').getContext('2d');
+        new Chart(providerCtx, {
+            type: 'doughnut',
+            data: {
+                labels: providerLabels,
+                datasets: [{
+                    data: providerValues,
+                    backgroundColor: [
+                        'rgba(0, 123, 255, 0.7)',
+                        'rgba(255, 193, 7, 0.7)',
+                        'rgba(23, 162, 184, 0.7)',
+                        'rgba(102, 16, 242, 0.7)',
+                        'rgba(40, 167, 69, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(0, 123, 255, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(23, 162, 184, 1)',
+                        'rgba(102, 16, 242, 1)',
+                        'rgba(40, 167, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${context.label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,572 @@
+# Script de préparation de l'environnement de staging pour Technicia OCR
+# Version: 1.0
+# Date: 7 avril 2025
+#
+# Ce script automatise la préparation complète de l'environnement de staging
+# pour le système OCR Technicia selon les spécifications définies.
+
+param (
+    [Parameter(Mandatory=$false)]
+    [string]$ConfigPath = "..\..\deploy\configs\staging_config.json",
+    
+    [switch]$SkipPrerequisites = $false,
+    
+    [switch]$SkipSoftwareInstall = $false,
+    
+    [switch]$SkipNetworkConfig = $false,
+    
+    [switch]$SkipSecurityConfig = $false,
+    
+    [switch]$SkipDataPreparation = $false,
+    
+    [switch]$SkipDatabasePreparation = $false,
+    
+    [switch]$IncludeTestData = $false,
+    
+    [switch]$Force = $false
+)
+
+#region Initialisation
+# Déterminer le chemin de base
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$global:basePath = (Get-Item (Join-Path $scriptPath "..\..")).FullName
+
+# Chemins des modules
+$modulesPath = Join-Path $scriptPath "utils"
+$loggerModule = Join-Path $modulesPath "staging_logger.ps1"
+$prereqsModule = Join-Path $modulesPath "staging_prereqs.ps1"
+$softwareModule = Join-Path $modulesPath "staging_software.ps1"
+$networkModule = Join-Path $modulesPath "staging_network.ps1"
+$securityModule = Join-Path $modulesPath "staging_security.ps1"
+$dataModule = Join-Path $modulesPath "staging_data.ps1"
+$databaseModule = Join-Path $modulesPath "staging_database.ps1"
+
+# Importer les modules
+$global:logFile = Join-Path $global:basePath "logs\staging_preparation_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+
+# Créer le répertoire de logs s'il n'existe pas
+$logDir = Split-Path -Parent $global:logFile
+if (-not (Test-Path $logDir)) {
+    New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+}
+
+# Importer les modules
+. $loggerModule
+
+Write-LogMessage "Importation du module de journalisation..." "INFO"
+
+# Configurer la journalisation
+Write-LogMessage "Fichier log: $global:logFile" "INFO"
+
+# Importer les autres modules
+Write-LogMessage "Importation des modules utilitaires..." "INFO"
+. $prereqsModule
+. $softwareModule
+. $networkModule
+. $securityModule
+. $dataModule
+. $databaseModule
+
+# Charger la configuration
+$configPathExpanded = [System.IO.Path]::GetFullPath((Join-Path $scriptPath $ConfigPath))
+Write-LogMessage "Chargement de la configuration depuis: $configPathExpanded" "INFO"
+
+if (-not (Test-Path $configPathExpanded)) {
+    Write-LogMessage "Le fichier de configuration n'existe pas: $configPathExpanded" "ERROR"
+    Exit 1
+}
+
+try {
+    $global:config = Get-Content -Path $configPathExpanded -Raw | ConvertFrom-Json
+    
+    # Remplacer les variables d'environnement dans la configuration
+    $configJson = Get-Content -Path $configPathExpanded -Raw
+    $configJson = $configJson -replace '\$\{basePath\}', $global:basePath.Replace('\', '\\')
+    $global:config = $configJson | ConvertFrom-Json
+    
+    Write-LogMessage "Configuration chargée avec succès" "SUCCESS"
+}
+catch {
+    Log-Exception $_ "Chargement de la configuration"
+    Exit 1
+}
+#endregion Initialisation
+
+#region Fonctions principales
+function Initialize-StagingPreparation {
+    Write-LogMessage "=== INITIALISATION DE LA PRÉPARATION DE L'ENVIRONNEMENT DE STAGING ===" "INFO"
+    
+    # Vérifier l'existence des répertoires nécessaires
+    Write-LogMessage "Vérification des répertoires de base..." "INFO"
+    
+    $requiredDirs = @(
+        (Join-Path $global:basePath "logs"),
+        (Join-Path $global:basePath "temp"),
+        (Join-Path $global:basePath "backups"),
+        (Join-Path $global:basePath "data")
+    )
+    
+    foreach ($dir in $requiredDirs) {
+        if (-not (Test-Path $dir)) {
+            Write-LogMessage "Création du répertoire $dir..." "INFO"
+            New-Item -Path $dir -ItemType Directory -Force | Out-Null
+        }
+    }
+    
+    Write-LogMessage "Répertoires de base vérifiés." "SUCCESS"
+    
+    # Vérifier l'existence du fichier de config
+    if (-not (Test-Path $configPathExpanded)) {
+        Write-LogMessage "Le fichier de configuration $ConfigPath n'existe pas." "ERROR"
+        return $false
+    }
+    
+    Write-LogMessage "Fichier de configuration chargé avec succès." "SUCCESS"
+    
+    # Vérifier que les modules nécessaires sont disponibles
+    $requiredModules = @(
+        $loggerModule,
+        $prereqsModule,
+        $softwareModule,
+        $networkModule,
+        $securityModule,
+        $dataModule,
+        $databaseModule
+    )
+    
+    foreach ($module in $requiredModules) {
+        if (-not (Test-Path $module)) {
+            Write-LogMessage "Le module $module n'existe pas." "ERROR"
+            return $false
+        }
+    }
+    
+    Write-LogMessage "Tous les modules sont disponibles." "SUCCESS"
+    Write-LogMessage "Initialisation terminée." "SUCCESS"
+    
+    return $true
+}
+
+function Start-StagingPreparation {
+    param (
+        [Parameter(Mandatory=$false)]
+        [switch]$Force = $false,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$SkipConfirmation = $false,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$SkipPrerequisites = $false,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$SkipSoftware = $false,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$SkipNetwork = $false,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$SkipSecurity = $false,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$SkipData = $false,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$SkipDatabase = $false,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$IncludeTestData = $false
+    )
+    
+    Start-LogSection "PRÉPARATION DE L'ENVIRONNEMENT DE STAGING"
+    
+    # Initialiser la préparation
+    $initResult = Initialize-StagingPreparation
+    if (-not $initResult) {
+        Write-LogMessage "Échec de l'initialisation de la préparation." "ERROR"
+        End-LogSection
+        return $false
+    }
+    
+    # Création d'un objet pour suivre le statut de chaque étape
+    $preparationStatus = @{
+        "Prerequisites" = "Not Started"
+        "Software" = "Not Started"
+        "Network" = "Not Started"
+        "Security" = "Not Started"
+        "Database" = "Not Started"
+        "Data" = "Not Started"
+    }
+    
+    # Vérifier les prérequis système
+    if (-not $SkipPrerequisites) {
+        $confirmPrereqs = $SkipConfirmation -or (Get-UserConfirmation "Voulez-vous vérifier les prérequis système?" -Default $true)
+        
+        if ($confirmPrereqs) {
+            Write-LogMessage "Vérification des prérequis système..." "INFO"
+            $prereqsResult = Test-SystemPrerequisites -Config $Config
+            
+            if ($prereqsResult) {
+                Write-LogMessage "Vérification des prérequis système terminée avec succès." "SUCCESS"
+                $preparationStatus["Prerequisites"] = "Success"
+            } else {
+                Write-LogMessage "La vérification des prérequis système a échoué." "ERROR"
+                $preparationStatus["Prerequisites"] = "Failed"
+                if (-not $Force) {
+                    End-LogSection
+                    return $false
+                }
+            }
+        } else {
+            Write-LogMessage "Vérification des prérequis système ignorée." "INFO"
+            $preparationStatus["Prerequisites"] = "Skipped"
+        }
+    } else {
+        Write-LogMessage "Vérification des prérequis système ignorée (paramètre SkipPrerequisites)." "INFO"
+        $preparationStatus["Prerequisites"] = "Skipped"
+    }
+    
+    # Installer les logiciels requis
+    if (-not $SkipSoftware) {
+        $confirmSoftware = $SkipConfirmation -or (Get-UserConfirmation "Voulez-vous installer les logiciels requis?" -Default $true)
+        
+        if ($confirmSoftware) {
+            Write-LogMessage "Installation des logiciels requis..." "INFO"
+            $softwareResult = Install-RequiredSoftware -Config $Config
+            
+            if ($softwareResult) {
+                Write-LogMessage "Installation des logiciels requis terminée avec succès." "SUCCESS"
+                $preparationStatus["Software"] = "Success"
+            } else {
+                Write-LogMessage "L'installation des logiciels requis a échoué." "ERROR"
+                $preparationStatus["Software"] = "Failed"
+                if (-not $Force) {
+                    End-LogSection
+                    return $false
+                }
+            }
+        } else {
+            Write-LogMessage "Installation des logiciels requis ignorée." "INFO"
+            $preparationStatus["Software"] = "Skipped"
+        }
+    } else {
+        Write-LogMessage "Installation des logiciels requis ignorée (paramètre SkipSoftware)." "INFO"
+        $preparationStatus["Software"] = "Skipped"
+    }
+    
+    # Configurer le réseau
+    if (-not $SkipNetwork) {
+        $confirmNetwork = $SkipConfirmation -or (Get-UserConfirmation "Voulez-vous configurer le réseau?" -Default $true)
+        
+        if ($confirmNetwork) {
+            Write-LogMessage "Configuration du réseau..." "INFO"
+            $networkResult = Configure-Network -Config $Config
+            
+            if ($networkResult) {
+                Write-LogMessage "Configuration du réseau terminée avec succès." "SUCCESS"
+                $preparationStatus["Network"] = "Success"
+            } else {
+                Write-LogMessage "La configuration du réseau a échoué." "ERROR"
+                $preparationStatus["Network"] = "Failed"
+                if (-not $Force) {
+                    End-LogSection
+                    return $false
+                }
+            }
+        } else {
+            Write-LogMessage "Configuration du réseau ignorée." "INFO"
+            $preparationStatus["Network"] = "Skipped"
+        }
+    } else {
+        Write-LogMessage "Configuration du réseau ignorée (paramètre SkipNetwork)." "INFO"
+        $preparationStatus["Network"] = "Skipped"
+    }
+    
+    # Configurer la sécurité
+    if (-not $SkipSecurity) {
+        $confirmSecurity = $SkipConfirmation -or (Get-UserConfirmation "Voulez-vous configurer la sécurité?" -Default $true)
+        
+        if ($confirmSecurity) {
+            Write-LogMessage "Configuration de la sécurité..." "INFO"
+            $securityResult = Configure-Security -Config $Config
+            
+            if ($securityResult) {
+                Write-LogMessage "Configuration de la sécurité terminée avec succès." "SUCCESS"
+                $preparationStatus["Security"] = "Success"
+            } else {
+                Write-LogMessage "La configuration de la sécurité a échoué." "ERROR"
+                $preparationStatus["Security"] = "Failed"
+                if (-not $Force) {
+                    End-LogSection
+                    return $false
+                }
+            }
+        } else {
+            Write-LogMessage "Configuration de la sécurité ignorée." "INFO"
+            $preparationStatus["Security"] = "Skipped"
+        }
+    } else {
+        Write-LogMessage "Configuration de la sécurité ignorée (paramètre SkipSecurity)." "INFO"
+        $preparationStatus["Security"] = "Skipped"
+    }
+    
+    # Préparer la base de données
+    if (-not $SkipDatabase) {
+        $confirmDatabase = $SkipConfirmation -or (Get-UserConfirmation "Voulez-vous préparer la base de données?" -Default $true)
+        
+        if ($confirmDatabase) {
+            Write-LogMessage "Préparation de la base de données..." "INFO"
+            $sqlScriptsPath = Join-Path -Path $global:basePath -ChildPath "deploy\scripts\sql"
+            $databaseResult = Invoke-DatabasePreparation -DatabaseConfig $Config.database -SqlScriptsPath $sqlScriptsPath -IncludeTestData:$IncludeTestData
+            
+            if ($databaseResult) {
+                Write-LogMessage "Préparation de la base de données terminée avec succès." "SUCCESS"
+                $preparationStatus["Database"] = "Success"
+            } else {
+                Write-LogMessage "La préparation de la base de données a échoué." "ERROR"
+                $preparationStatus["Database"] = "Failed"
+                if (-not $Force) {
+                    End-LogSection
+                    return $false
+                }
+            }
+        } else {
+            Write-LogMessage "Préparation de la base de données ignorée." "INFO"
+            $preparationStatus["Database"] = "Skipped"
+        }
+    } else {
+        Write-LogMessage "Préparation de la base de données ignorée (paramètre SkipDatabase)." "INFO"
+        $preparationStatus["Database"] = "Skipped"
+    }
+    
+    # Préparer les données
+    if (-not $SkipData) {
+        $confirmData = $SkipConfirmation -or (Get-UserConfirmation "Voulez-vous préparer les données?" -Default $true)
+        
+        if ($confirmData) {
+            Write-LogMessage "Préparation des données..." "INFO"
+            $dataResult = Prepare-Data -Config $Config
+            
+            if ($dataResult) {
+                Write-LogMessage "Préparation des données terminée avec succès." "SUCCESS"
+                $preparationStatus["Data"] = "Success"
+            } else {
+                Write-LogMessage "La préparation des données a échoué." "ERROR"
+                $preparationStatus["Data"] = "Failed"
+                if (-not $Force) {
+                    End-LogSection
+                    return $false
+                }
+            }
+        } else {
+            Write-LogMessage "Préparation des données ignorée." "INFO"
+            $preparationStatus["Data"] = "Skipped"
+        }
+    } else {
+        Write-LogMessage "Préparation des données ignorée (paramètre SkipData)." "INFO"
+        $preparationStatus["Data"] = "Skipped"
+    }
+    
+    # Générer le rapport de préparation
+    New-PreparationReport -Status $preparationStatus
+    
+    Write-LogMessage "Préparation de l'environnement de staging terminée." "SUCCESS"
+    End-LogSection
+    
+    return $true
+}
+
+function Confirm-Action {
+    param (
+        [string]$Message,
+        [switch]$WarningMessage = $false
+    )
+    
+    if ($Force) {
+        return $true
+    }
+    
+    if ($WarningMessage) {
+        Write-LogMessage $Message "WARN"
+    }
+    else {
+        Write-LogMessage $Message "INFO"
+    }
+    
+    $response = Read-Host "Voulez-vous continuer? (O/N)"
+    
+    return $response -match "^[Oo]"
+}
+
+function Show-Summary {
+    Write-LogMessage "=== RÉSUMÉ DE LA PRÉPARATION DE L'ENVIRONNEMENT DE STAGING ===" "INFO"
+    
+    Write-LogMessage "Application: $($global:config.general.applicationName)" "INFO"
+    Write-LogMessage "Version: $($global:config.general.version)" "INFO"
+    Write-LogMessage "Environnement: $($global:config.general.environment)" "INFO"
+    
+    Write-LogMessage "Étapes exécutées:" "INFO"
+    
+    if (-not $SkipPrerequisites) {
+        Write-LogMessage "- Vérification des prérequis" "INFO"
+    }
+    
+    if (-not $SkipSoftwareInstall) {
+        Write-LogMessage "- Installation des logiciels" "INFO"
+    }
+    
+    if (-not $SkipNetworkConfig) {
+        Write-LogMessage "- Configuration réseau" "INFO"
+    }
+    
+    if (-not $SkipSecurityConfig) {
+        Write-LogMessage "- Configuration de sécurité" "INFO"
+    }
+    
+    if (-not $SkipDataPreparation) {
+        Write-LogMessage "- Préparation des données" "INFO"
+    }
+    
+    if (-not $SkipDatabasePreparation) {
+        Write-LogMessage "- Préparation de la base de données" "INFO"
+    }
+    
+    Write-LogMessage "Fichier log: $global:logFile" "INFO"
+    Write-LogMessage "Date et heure de fin: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" "INFO"
+    
+    Write-LogMessage "=== FIN DE LA PRÉPARATION DE L'ENVIRONNEMENT DE STAGING ===" "SUCCESS"
+}
+#endregion Fonctions principales
+
+#region Exécution principale
+try {
+    # Afficher l'en-tête
+    Write-LogMessage "=============================================================" "INFO"
+    Write-LogMessage "  PRÉPARATION DE L'ENVIRONNEMENT DE STAGING - TECHNICIA OCR  " "INFO"
+    Write-LogMessage "=============================================================" "INFO"
+    Write-LogMessage "Date et heure de début: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" "INFO"
+    Write-LogMessage "Version du script: 1.0" "INFO"
+    Write-LogMessage "Chemin de base: $global:basePath" "INFO"
+    Write-LogMessage "=============================================================" "INFO"
+    
+    # Initialiser la préparation
+    Initialize-StagingPreparation
+    
+    # 1. Vérification des prérequis
+    if (-not $SkipPrerequisites) {
+        $confirmPrereqs = Confirm-Action -Message "Voulez-vous procéder à la vérification des prérequis système?"
+        
+        if ($confirmPrereqs) {
+            $prereqsOk = Test-SystemPrerequisites
+            
+            if (-not $prereqsOk) {
+                $confirmContinue = Confirm-Action -Message "Certains prérequis système ne sont pas satisfaits. Voulez-vous continuer quand même?" -WarningMessage
+                
+                if (-not $confirmContinue) {
+                    Write-LogMessage "Préparation interrompue: prérequis système non satisfaits" "ERROR"
+                    Exit 1
+                }
+            }
+            
+            $dependenciesOk = Test-SoftwareDependencies
+            
+            if (-not $dependenciesOk) {
+                $confirmContinue = Confirm-Action -Message "Certaines dépendances logicielles ne sont pas satisfaites. Voulez-vous continuer quand même?" -WarningMessage
+                
+                if (-not $confirmContinue) {
+                    Write-LogMessage "Préparation interrompue: dépendances logicielles non satisfaites" "ERROR"
+                    Exit 1
+                }
+            }
+        }
+    }
+    else {
+        Write-LogMessage "Vérification des prérequis ignorée" "WARN"
+    }
+    
+    # 2. Installation des logiciels
+    if (-not $SkipSoftwareInstall) {
+        $confirmSoftware = Confirm-Action -Message "Voulez-vous procéder à l'installation des logiciels requis?"
+        
+        if ($confirmSoftware) {
+            Install-RequiredSoftware
+        }
+    }
+    else {
+        Write-LogMessage "Installation des logiciels ignorée" "WARN"
+    }
+    
+    # 3. Configuration réseau
+    if (-not $SkipNetworkConfig) {
+        $confirmNetwork = Confirm-Action -Message "Voulez-vous procéder à la configuration réseau?"
+        
+        if ($confirmNetwork) {
+            Configure-Network
+        }
+    }
+    else {
+        Write-LogMessage "Configuration réseau ignorée" "WARN"
+    }
+    
+    # 4. Configuration de sécurité
+    if (-not $SkipSecurityConfig) {
+        $confirmSecurity = Confirm-Action -Message "Voulez-vous procéder à la configuration de sécurité?"
+        
+        if ($confirmSecurity) {
+            Configure-Security
+        }
+    }
+    else {
+        Write-LogMessage "Configuration de sécurité ignorée" "WARN"
+    }
+    
+    # 5. Préparation des données
+    if (-not $SkipDataPreparation) {
+        $confirmData = Confirm-Action -Message "Voulez-vous procéder à la préparation des données?"
+        
+        if ($confirmData) {
+            Prepare-Data
+        }
+    }
+    else {
+        Write-LogMessage "Préparation des données ignorée" "WARN"
+    }
+    
+    # 6. Préparation de la base de données
+    if (-not $SkipDatabasePreparation) {
+        $confirmDatabase = Confirm-Action -Message "Voulez-vous procéder à la préparation de la base de données?"
+        
+        if ($confirmDatabase) {
+            $sqlScriptsPath = Join-Path -Path $global:basePath -ChildPath "deploy\scripts\sql"
+            Invoke-DatabasePreparation -DatabaseConfig $Config.database -SqlScriptsPath $sqlScriptsPath -IncludeTestData:$IncludeTestData
+        }
+    }
+    else {
+        Write-LogMessage "Préparation de la base de données ignorée" "WARN"
+    }
+    
+    # 7. Exécution des tests (si activé)
+    if ($global:config.testing.enabled -eq $true -and $global:config.testing.executeTestsAfterDeployment -eq $true) {
+        $confirmTests = Confirm-Action -Message "Voulez-vous exécuter les tests après le déploiement?"
+        
+        if ($confirmTests) {
+            Write-LogMessage "Exécution des tests..." "INFO"
+            
+            # Logique d'exécution des tests (à implémenter)
+            # Cette section sera développée ultérieurement
+        }
+    }
+    
+    # Afficher le résumé
+    Show-Summary
+    
+    Write-LogMessage "Préparation de l'environnement de staging terminée avec succès!" "SUCCESS"
+}
+catch {
+    Log-Exception $_ "Préparation de l'environnement de staging"
+    Write-LogMessage "La préparation de l'environnement de staging a échoué" "ERROR"
+    Exit 1
+}
+finally {
+    Write-LogMessage "Consultez le fichier log pour plus de détails: $global:logFile" "INFO"
+}
+#endregion Exécution principale

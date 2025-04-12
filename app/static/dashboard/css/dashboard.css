@@ -1,0 +1,396 @@
+/**
+ * Feuille de style pour le tableau de bord OCR
+ * 
+ * Cette feuille de style définit l'apparence du tableau de bord de suivi des tâches OCR.
+ * Elle s'appuie sur Bootstrap 5 comme framework CSS de base et ajoute des styles
+ * personnalisés pour améliorer l'expérience utilisateur.
+ * 
+ * Caractéristiques principales:
+ * - Mise en page responsive adaptée aux différentes tailles d'écran
+ * - Barre latérale fixe sur les grands écrans, collapsible sur les petits écrans
+ * - Styles pour les tableaux, cartes, boutons et autres éléments d'interface
+ * - Thèmes de couleur pour les différents états des tâches
+ * 
+ * Auteur: Équipe Technicia
+ * Date: Mars 2025
+ */
+
+/* Variables globales */
+:root {
+    --sidebar-width: 280px;
+    --topbar-height: 56px;
+    --primary-color: #3498db;
+    --secondary-color: #2c3e50;
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --info-color: #3498db;
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
+    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --transition-speed: 0.3s;
+}
+
+/* Styles de base */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.footer {
+    margin-top: auto;
+}
+
+/* Barre de navigation */
+.navbar-brand {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0;
+    width: var(--sidebar-width);
+    height: calc(100vh - var(--topbar-height));
+    background-color: #fff;
+    border-right: 1px solid #dee2e6;
+    padding: 1rem;
+    overflow-y: auto;
+    transition: transform var(--transition-speed) ease;
+    z-index: 100;
+}
+
+.sidebar-heading {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1rem;
+}
+
+.sidebar .list-group-item {
+    border-radius: 0.25rem;
+    margin-bottom: 0.25rem;
+    transition: background-color var(--transition-speed) ease;
+}
+
+.sidebar .list-group-item.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.sidebar .list-group-item:hover:not(.active) {
+    background-color: #f8f9fa;
+}
+
+/* Contenu principal */
+.ms-sm-auto {
+    transition: margin-left var(--transition-speed) ease;
+}
+
+@media (min-width: 768px) {
+    .ms-sm-auto {
+        margin-left: var(--sidebar-width) !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+}
+
+/* Cartes */
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 1.5rem;
+}
+
+.card:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    font-weight: 600;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-footer {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-top: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+/* Tableaux */
+.table-responsive {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.125);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+}
+
+.table tbody tr {
+    transition: background-color var(--transition-speed) ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Barre de progression */
+.progress {
+    border-radius: 0.25rem;
+    overflow: hidden;
+    background-color: #e9ecef;
+    height: 10px;
+    margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+    background-color: var(--primary-color);
+    border-radius: 0.25rem;
+}
+
+/* Badges d'état */
+.badge {
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    font-weight: 600;
+    border-radius: 0.25rem;
+}
+
+.badge.bg-pending {
+    background-color: #6c757d;
+}
+
+.badge.bg-running {
+    background-color: var(--info-color);
+}
+
+.badge.bg-completed {
+    background-color: var(--success-color);
+}
+
+.badge.bg-failed {
+    background-color: var(--danger-color);
+}
+
+.badge.bg-paused {
+    background-color: var(--warning-color);
+}
+
+.badge.bg-retrying {
+    background-color: #17a2b8;
+}
+
+/* Boutons */
+.btn {
+    border-radius: 0.25rem;
+    font-weight: 500;
+    transition: all var(--transition-speed) ease;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* Liste des tâches récentes */
+.recent-tasks .list-group-item {
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.25rem;
+    border-radius: 0.25rem;
+}
+
+/* Indicateurs d'état */
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.status-indicator.running {
+    background-color: var(--info-color);
+    animation: pulse 1.5s infinite;
+}
+
+.status-indicator.completed {
+    background-color: var(--success-color);
+}
+
+.status-indicator.failed {
+    background-color: var(--danger-color);
+}
+
+.status-indicator.paused {
+    background-color: var(--warning-color);
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 5px rgba(52, 152, 219, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(52, 152, 219, 0);
+    }
+}
+
+/* Détails de tâche */
+.task-detail-header {
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e9ecef;
+}
+
+.task-detail-progress {
+    height: 20px;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Graphiques */
+canvas {
+    max-width: 100%;
+}
+
+/* Animations */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Métriques */
+.metric-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.metric-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+}
+
+/* Checkpoints */
+.checkpoint-timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.checkpoint-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #dee2e6;
+}
+
+.checkpoint {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.checkpoint::before {
+    content: '';
+    position: absolute;
+    left: -2rem;
+    top: 0.25rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    border: 2px solid white;
+    z-index: 1;
+}
+
+.checkpoint-time {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.checkpoint-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.checkpoint-content {
+    font-size: 0.9rem;
+}
+
+/* Messages */
+.messages {
+    margin-bottom: 1.5rem;
+}
+
+.alert {
+    border-radius: 0.25rem;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Utilitaires */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Thème sombre (futur développement) */
+/* À implémenter pour une future version */

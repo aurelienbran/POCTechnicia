@@ -1,0 +1,456 @@
+/**
+ * Styles pour le tableau de bord OCR
+ * 
+ * Ce fichier contient les styles spécifiques au tableau de bord OCR,
+ * y compris les couleurs pour les différents statuts de tâches, les animations
+ * pour les barres de progression, et la mise en page responsive.
+ * 
+ * Auteur: Équipe Technicia
+ * Date: Avril 2025
+ */
+
+/* Variables globales */
+:root {
+    --color-completed: #28a745;
+    --color-running: #17a2b8;
+    --color-queued: #ffc107;
+    --color-failed: #dc3545;
+    --color-cancelled: #6c757d;
+    --color-paused: #fd7e14;
+    
+    --color-priority-critical: #dc3545;
+    --color-priority-high: #fd7e14;
+    --color-priority-normal: #ffc107;
+    --color-priority-low: #28a745;
+}
+
+/* Conteneur principal */
+.ocr-dashboard {
+    padding: 20px;
+}
+
+/* En-tête du tableau de bord */
+.dashboard-header {
+    margin-bottom: 20px;
+}
+
+.dashboard-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.dashboard-title h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+.dashboard-title .badge {
+    margin-left: 10px;
+    font-size: 0.9rem;
+}
+
+.dashboard-actions {
+    margin-bottom: 15px;
+}
+
+/* Statistiques */
+.stats-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -10px 20px;
+}
+
+.stat-card {
+    flex: 1 1 200px;
+    margin: 10px;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #6c757d;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+/* Graphiques */
+.charts-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -10px 20px;
+}
+
+.chart-card {
+    flex: 1 1 400px;
+    margin: 10px;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container {
+    height: 200px;
+    position: relative;
+}
+
+/* Filtres de tâches */
+.task-filters {
+    margin-bottom: 15px;
+}
+
+.task-filter {
+    border-radius: 20px;
+    margin-right: 5px;
+    font-size: 0.85rem;
+    padding: 4px 12px;
+}
+
+/* Liste des tâches */
+.tasks-table-container {
+    margin-bottom: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tasks-table {
+    margin-bottom: 0;
+}
+
+.tasks-table th {
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.tasks-table th::after {
+    content: "";
+    margin-left: 5px;
+    display: inline-block;
+    width: 0;
+    height: 0;
+    opacity: 0.5;
+}
+
+.tasks-table th.sort-asc::after {
+    content: "↓";
+}
+
+.tasks-table th.sort-desc::after {
+    content: "↑";
+}
+
+.tasks-table tbody tr {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.tasks-table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.tasks-table tbody tr.selected {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Statuts des tâches */
+.badge.task-status, .task-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: lowercase;
+    text-align: center;
+}
+
+.task-status.status-completed, .badge.status-completed {
+    background-color: var(--color-completed);
+    color: white;
+}
+
+.task-status.status-running, .badge.status-running {
+    background-color: var(--color-running);
+    color: white;
+}
+
+.task-status.status-preprocessing, .badge.status-preprocessing, 
+.task-status.status-postprocessing, .badge.status-postprocessing {
+    background-color: var(--color-running);
+    color: white;
+}
+
+.task-status.status-queued, .badge.status-queued {
+    background-color: var(--color-queued);
+    color: black;
+}
+
+.task-status.status-failed, .badge.status-failed {
+    background-color: var(--color-failed);
+    color: white;
+}
+
+.task-status.status-cancelled, .badge.status-cancelled {
+    background-color: var(--color-cancelled);
+    color: white;
+}
+
+.task-status.status-paused, .badge.status-paused {
+    background-color: var(--color-paused);
+    color: white;
+}
+
+/* Priorités des tâches */
+.badge.task-priority, .task-priority {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: lowercase;
+    text-align: center;
+}
+
+.task-priority.priority-critical, .badge.priority-critical {
+    background-color: var(--color-priority-critical);
+    color: white;
+}
+
+.task-priority.priority-high, .badge.priority-high {
+    background-color: var(--color-priority-high);
+    color: white;
+}
+
+.task-priority.priority-normal, .badge.priority-normal {
+    background-color: var(--color-priority-normal);
+    color: black;
+}
+
+.task-priority.priority-low, .badge.priority-low {
+    background-color: var(--color-priority-low);
+    color: white;
+}
+
+/* Barre de progression */
+.task-progress .progress {
+    height: 14px;
+    position: relative;
+    overflow: visible;
+    margin-bottom: 0;
+    background-color: #e9ecef;
+}
+
+.task-progress .progress-bar {
+    transition: width 0.5s ease;
+    animation: progress-pulse 2s infinite;
+}
+
+.task-progress .progress-text {
+    position: absolute;
+    right: 5px;
+    top: 0;
+    color: black;
+    font-size: 0.7rem;
+    line-height: 14px;
+}
+
+@keyframes progress-pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Détails de la tâche */
+.task-details {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.task-details-header {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.task-details-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.task-details-content {
+    padding: 15px;
+}
+
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    overflow-x: auto;
+}
+
+/* Formulaire d'upload */
+.upload-container {
+    margin-bottom: 20px;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.upload-container h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+.file-upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 15px;
+    transition: border-color 0.2s;
+}
+
+.file-upload-area:hover {
+    border-color: #adb5bd;
+}
+
+.file-upload-icon {
+    font-size: 2rem;
+    color: #6c757d;
+    margin-bottom: 10px;
+}
+
+.file-upload-text {
+    margin-bottom: 15px;
+}
+
+.file-upload-browse {
+    display: inline-block;
+    color: #007bff;
+    cursor: pointer;
+}
+
+.file-input {
+    display: none;
+}
+
+/* Notifications */
+.notifications-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    width: 300px;
+}
+
+.notifications-container .alert {
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    animation: fade-in 0.3s ease-out forwards;
+}
+
+@keyframes fade-in {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Indicateur de connexion */
+.connection-status {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-left: 5px;
+}
+
+.status-connected {
+    background-color: #28a745;
+    color: white;
+}
+
+.status-disconnected {
+    background-color: #6c757d;
+    color: white;
+}
+
+.status-error {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 991.98px) {
+    .stat-card {
+        flex-basis: calc(50% - 20px);
+    }
+    
+    .chart-card {
+        flex-basis: 100%;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .stat-card {
+        flex-basis: 100%;
+    }
+    
+    .task-actions .btn-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .task-actions .btn {
+        margin-bottom: 5px;
+    }
+    
+    .tasks-table {
+        width: 100%;
+        display: block;
+        overflow-x: auto;
+    }
+}
+
+/* Animations */
+.fade-enter-active, .fade-leave-active {
+    transition: opacity 0.3s;
+}
+
+.fade-enter, .fade-leave-to {
+    opacity: 0;
+}

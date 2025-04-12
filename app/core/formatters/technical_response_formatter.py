@@ -182,7 +182,7 @@ class TechnicalResponseFormatter:
         cleaned_text = re.sub(r'\s+([.,;:!?])', r'\1', cleaned_text)
         
         # Nettoyer les phrases qui commencent par une ponctuation (résultat possible de suppressions)
-        cleaned_text = re.sub(r'(?<=\.\s+)([.,;:!?])', '', cleaned_text)
+        cleaned_text = re.sub(r'(?<=\.\s{1,5})([.,;:!?])', '', cleaned_text)
         
         return cleaned_text
 

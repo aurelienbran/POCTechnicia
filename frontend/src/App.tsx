@@ -62,7 +62,7 @@ function App() {
     {
       id: '1',
       type: 'system',
-      content: 'Bienvenue sur CFF AI Assistant! Téléchargez un document PDF ou posez une question.',
+      content: 'Bienvenue sur Technicia Assistant! Téléchargez un document PDF ou posez une question.',
       timestamp: new Date()
     }
   ]);
@@ -445,7 +445,149 @@ function App() {
 
   const renderMessageContent = (message: Message) => {
     if (message.type === 'assistant') {
-      const sanitizedHtml = DOMPurify.sanitize(marked.parse(message.content));
+      let messageContent = message.content;
+      let messageSources = [...(message.sources || [])];
+      
+      // Recherche et extraction des sources mentionnées dans le texte avec une regex plus flexible
+      const sourcesRegex = /(?:Sources?|SOURCES?|Références)\s*(?::|\.|-|–|—)?\s*\n?([\s\S]*?)(?=\n\n|\n?$|$)/i;
+      const sourcesMatch = messageContent.match(sourcesRegex);
+      
+      if (sourcesMatch && sourcesMatch[1]) {
+        // Extraire le bloc de texte des sources
+        const sourcesText = sourcesMatch[1].trim();
+        
+        if (sourcesText) {
+          // Créer un dictionnaire des sources existantes pour un accès rapide
+          const existingDocumentMap: { [key: string]: boolean } = {};
+          
+          // Marquer les documents déjà inclus
+          messageSources.forEach(source => {
+            existingDocumentMap[source.file] = true;
+          });
+          
+          // Cas spécial: liste de documents séparés par des virgules (ex: "Document 1, Document 2, Document 4")
+          const commaListRegex = /Document\s+(\d+)(?:\s*,\s*|\.|\s+et\s+|$)/g;
+          let commaMatch;
+          let foundCommaList = false;
+          
+          // Vérifier d'abord si le texte correspond à une liste simple
+          if (sourcesText.match(/^Document\s+\d+(?:\s*,\s*Document\s+\d+)*\.?$/)) {
+            foundCommaList = true;
+            
+            // Détecter tous les documents mentionnés dans la liste
+            const mentionedDocNumbers: string[] = [];
+            while ((commaMatch = commaListRegex.exec(sourcesText)) !== null) {
+              if (commaMatch[1]) {
+                mentionedDocNumbers.push(commaMatch[1]);
+              }
+            }
+            
+            // Vérifier si des sources API existent déjà et correspondent aux numéros mentionnés
+            if (message.sources && message.sources.length > 0) {
+              const apiDocMap: { [key: string]: Source } = {};
+              
+              // Extraire tous les numéros de documents des sources API
+              message.sources.forEach(source => {
+                const docMatch = source.file.match(/Document\s+(\d+)/i);
+                if (docMatch && docMatch[1]) {
+                  apiDocMap[docMatch[1]] = source;
+                }
+              });
+              
+              // Ajouter à messageSources toutes les sources API qui correspondent aux documents mentionnés
+              mentionedDocNumbers.forEach(docNumber => {
+                if (apiDocMap[docNumber]) {
+                  // Vérifier que cette source n'est pas déjà dans messageSources
+                  const sourceExists = messageSources.some(s => s.file === apiDocMap[docNumber].file);
+                  if (!sourceExists) {
+                    messageSources.push(apiDocMap[docNumber]);
+                  }
+                } else {
+                  // Si ce document n'existe pas dans les sources API, créer une entrée générique
+                  const genericDocKey = `Document ${docNumber}: Document référencé dans la réponse`;
+                  if (!existingDocumentMap[genericDocKey]) {
+                    messageSources.push({
+                      file: genericDocKey,
+                      score: 0.8
+                    });
+                    existingDocumentMap[genericDocKey] = true;
+                  }
+                }
+              });
+            } else {
+              // Si aucune source API n'est disponible, créer des entrées génériques
+              mentionedDocNumbers.forEach(docNumber => {
+                const genericDocKey = `Document ${docNumber}: Document référencé dans la réponse`;
+                if (!existingDocumentMap[genericDocKey]) {
+                  messageSources.push({
+                    file: genericDocKey,
+                    score: 0.8
+                  });
+                  existingDocumentMap[genericDocKey] = true;
+                }
+              });
+            }
+          }
+          
+          // Si ce n'est pas une liste simple, essayer le format standard "Document N: description"
+          if (!foundCommaList) {
+            // Essayer d'abord avec un format "Document N: description"
+            const documentRegex = /(?:Document|Doc|Source)\s*[#]?(\d+)\s*(?::|\.|-|–|—)\s*(.*?)(?=(?:Document|Doc|Source)\s*[#]?(?:\d+)|$)/gis;
+            let documentMatch;
+            let foundDocuments = false;
+            
+            while ((documentMatch = documentRegex.exec(sourcesText)) !== null) {
+              foundDocuments = true;
+              const docNumber = documentMatch[1];
+              const docDescription = documentMatch[2].trim();
+              
+              if (docDescription) {
+                const docKey = `Document ${docNumber}: ${docDescription}`;
+                if (!existingDocumentMap[docKey]) {
+                  messageSources.push({
+                    file: docKey,
+                    score: 0.8 // Score par défaut pour les sources extraites du texte
+                  });
+                  existingDocumentMap[docKey] = true;
+                }
+              }
+            }
+            
+            // Si aucun document n'a été trouvé avec le premier format, essayer un format plus simple
+            if (!foundDocuments) {
+              // Diviser par les sauts de ligne ou points pour les formats non standard
+              const lines = sourcesText.split(/\n|(?<=\.)\s+/).filter(line => line.trim().length > 0);
+              
+              lines.forEach((line, index) => {
+                const trimmedLine = line.trim();
+                if (trimmedLine.length > 10) { // Ignorer les lignes trop courtes
+                  const lineKey = trimmedLine.endsWith('.') ? trimmedLine : `${trimmedLine}.`;
+                  if (!existingDocumentMap[lineKey]) {
+                    messageSources.push({
+                      file: lineKey,
+                      score: 0.8 - (index * 0.02) // Score légèrement décroissant pour les sources en bas de liste
+                    });
+                    existingDocumentMap[lineKey] = true;
+                  }
+                }
+              });
+            }
+          }
+        }
+        
+        // Supprimer la section des sources du contenu pour éviter la duplication
+        messageContent = messageContent.replace(sourcesRegex, '').trim();
+      }
+      
+      // Nettoyer tout espace supplémentaire et paragraphes vides qui pourraient rester
+      messageContent = messageContent.replace(/\n{3,}/g, '\n\n').trim();
+      
+      // Éviter les duplications de sources
+      const uniqueSources = Array.from(new Map(messageSources.map(item => 
+        [item.file, item]
+      )).values());
+      
+      const sanitizedHtml = DOMPurify.sanitize(marked.parse(messageContent));
       
       return (
         <div className="flex flex-col space-y-2 w-full">
@@ -454,17 +596,25 @@ function App() {
             dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
           />
           
-          {message.sources && message.sources.length > 0 && (
+          {uniqueSources.length > 0 && (
             <div className="mt-3 pt-3 border-t border-gray-200">
               <h4 className="text-sm font-medium text-gray-500 mb-2">Sources:</h4>
-              <ul className="text-xs text-gray-600 space-y-1">
-                {message.sources.map((source, index) => (
-                  <li key={index} className="flex items-center">
-                    <FileText size={12} className="mr-1 text-red-500" />
-                    <span>{source.file}</span>
-                    <span className="ml-2 text-gray-400">(Score: {(source.score * 100).toFixed(1)}%)</span>
-                  </li>
-                ))}
+              <ul className="text-xs text-gray-600 space-y-2 list-disc pl-5">
+                {uniqueSources.map((source, index) => {
+                  const scorePercentage = (source.score * 100).toFixed(1);
+                  
+                  return (
+                    <li key={index} className="flex flex-col">
+                      <div className="font-medium">
+                        <FileText size={14} className="inline-block mr-1 text-red-500" />
+                        <span>{source.file}</span>
+                      </div>
+                      <div className="text-gray-400 text-xs ml-5 mt-1">
+                        Pertinence: {scorePercentage}%
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -493,7 +643,7 @@ function App() {
           
           <button 
             className="self-end text-gray-400 hover:text-gray-600 flex items-center text-xs mt-2"
-            onClick={() => copyToClipboard(message.content)}
+            onClick={() => copyToClipboard(messageContent)}
           >
             <Copy size={12} className="mr-1" />
             Copier
@@ -672,7 +822,7 @@ function App() {
     setIndexingStatus({
       status,
       progress,
-      currentFile: data.current_file || indexingStatus.currentFile,
+      currentFile: data.current_file,
       ocrInProgress,
       ocrProgress,
       ocrCurrentPage,
@@ -715,18 +865,20 @@ function App() {
       <div className="w-[70px] bg-white border-r border-gray-200 flex flex-col items-center py-6">
         <div className="flex flex-col items-center space-y-6">
           <div className="w-10 h-10 flex items-center justify-center">
-            <img src="/cff-logo.svg" alt="CFF Logo" className="w-full h-full" />
+            <img src="/technicia-logo.svg" alt="Technicia Logo" className="w-full h-full" />
           </div>
           
           <button 
             className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors"
             onClick={() => {
-              setMessages([{
-                id: '1',
-                type: 'system',
-                content: 'Bienvenue sur CFF AI Assistant! Téléchargez un document PDF ou posez une question.',
-                timestamp: new Date()
-              }]);
+              setMessages([
+                {
+                  id: '1',
+                  type: 'system',
+                  content: 'Bienvenue sur Technicia Assistant! Téléchargez un document PDF ou posez une question.',
+                  timestamp: new Date()
+                }
+              ]);
             }}
           >
             <Home size={20} />
@@ -760,8 +912,8 @@ function App() {
         {/* Header */}
         <div className="bg-white border-b border-gray-200 py-3 px-4">
           <div className="max-w-4xl mx-auto flex items-center">
-            <img src="/cff-logo.svg" alt="CFF Logo" className="h-6 mr-3" />
-            <h1 className="text-lg font-semibold text-gray-800">CFF AI Assistant</h1>
+            <img src="/technicia-logo.svg" alt="Technicia Logo" className="h-6 mr-3" />
+            <h1 className="text-lg font-semibold text-gray-800">Technicia Assistant</h1>
           </div>
         </div>
         

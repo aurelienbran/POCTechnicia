@@ -1,9 +1,14 @@
 # Projet POC TECHNICIA - État d'avancement
 
 ## Vue d'ensemble
-Ce projet est une preuve de concept (POC) pour un système de Retrieval Augmented Generation (RAG) utilisant Claude 3 Sonnet. Le système est conçu pour traiter de grands documents techniques PDF, les indexer dans une base de données vectorielle Qdrant, et générer des réponses contextuelles.
+Ce projet est une plateforme complète combinant un système de Retrieval Augmented Generation (RAG) utilisant Claude 3 Sonnet et un tableau de bord OCR avancé. Le système est conçu pour traiter de grands documents techniques PDF, les indexer dans une base de données vectorielle Qdrant, générer des réponses contextuelles, et offrir une gestion complète des tâches OCR via un tableau de bord dédié.
 
 ## Architecture du Projet
+
+L'architecture globale du projet s'articule autour de deux composants principaux :
+
+1. **Module RAG** : Extraction, indexation et génération de réponses contextuelles
+2. **Tableau de bord OCR** : Gestion et monitoring des tâches OCR en temps réel
 
 ### Backend (FastAPI)
 - API REST avec FastAPI
@@ -13,20 +18,36 @@ Ce projet est une preuve de concept (POC) pour un système de Retrieval Augmente
   - `/api/v1/health` : Vérification de l'état du service
   - `/api/v1/indexing-status` : Statut du traitement des documents
   - `/api/v1/stats` : Statistiques sur les documents indexés
+  - `/api/dashboard` : API du tableau de bord OCR
+  - `/api/export` : Exportation des données OCR
 
-### Composants Principaux
+### Composants Principaux du Module RAG
 1. **PDFProcessor** : Extraction et chunking de texte (utilisant PyMuPDF)
 2. **VectorStore** : Interface avec Qdrant pour le stockage et la recherche vectorielle
 3. **LLMInterface** : Interface avec Claude 3 Sonnet pour la génération de réponses
 4. **RAGEngine** : Orchestration du processus RAG complet
 
-### Frontend
-- Interface utilisateur moderne avec Tailwind CSS
-- Upload de fichiers via sidebar compact
-- Modal de progression interactif
-- Chat avec historique scrollable
-- Affichage des sources avec scores de pertinence
-- Gestion des erreurs côté client
+### Composants Principaux du Tableau de Bord OCR
+1. **OCRTaskManager** : Gestion des tâches OCR (création, pause, reprise, annulation)
+2. **OCRMetricsCollector** : Collecte et analyse des métriques de performance OCR
+3. **ExportService** : Génération de rapports et exportation de données
+4. **WebSocketManager** : Communication en temps réel pour les mises à jour du tableau de bord
+
+### Frontends
+- **Frontend RAG** :
+  - Interface utilisateur moderne avec Tailwind CSS
+  - Upload de fichiers via sidebar compact
+  - Modal de progression interactif
+  - Chat avec historique scrollable
+  - Affichage des sources avec scores de pertinence
+  - Gestion des erreurs côté client
+
+- **Frontend Dashboard OCR** :
+  - Interface de gestion et monitoring des tâches OCR
+  - Visualisations et graphiques de performance en temps réel
+  - Formulaires de création et gestion des tâches
+  - Interface d'exportation de données et rapports
+  - Communication WebSocket pour mises à jour en direct
 
 ### Dépendances Externes
 - Claude 3 Sonnet (Anthropic v0.18.0)

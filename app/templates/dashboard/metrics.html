@@ -1,0 +1,540 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Métriques OCR - Tableau de Bord OCR{% endblock %}
+
+{% block page_title %}Métriques et performances OCR{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-primary" id="refresh-metrics">
+        <i class="fas fa-sync-alt"></i> Rafraîchir
+    </button>
+</div>
+<div class="btn-group me-2">
+    <a href="{{ url_for('dashboard_export_metrics') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-file-export"></i> Exporter
+    </a>
+</div>
+<div class="btn-group">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dateRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-calendar-alt"></i> {{ current_period }}
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="dateRangeDropdown">
+        <li><a class="dropdown-item {% if current_period == 'Aujourd\'hui' %}active{% endif %}" href="{{ url_for('dashboard_metrics', period='day') }}">Aujourd'hui</a></li>
+        <li><a class="dropdown-item {% if current_period == 'Cette semaine' %}active{% endif %}" href="{{ url_for('dashboard_metrics', period='week') }}">Cette semaine</a></li>
+        <li><a class="dropdown-item {% if current_period == 'Ce mois' %}active{% endif %}" href="{{ url_for('dashboard_metrics', period='month') }}">Ce mois</a></li>
+        <li><a class="dropdown-item {% if current_period == 'Cette année' %}active{% endif %}" href="{{ url_for('dashboard_metrics', period='year') }}">Cette année</a></li>
+        <li><a class="dropdown-item {% if current_period == 'Tout l\'historique' %}active{% endif %}" href="{{ url_for('dashboard_metrics', period='all') }}">Tout l'historique</a></li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Vue d'ensemble des métriques -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">Total des tâches</h5>
+                <h2 class="display-4">{{ overview.total_tasks }}</h2>
+                <p class="card-text">Tâches OCR traitées</p>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <div class="small text-white">Taux de réussite: {{ (overview.success_rate * 100)|round(1) }}%</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">Pages traitées</h5>
+                <h2 class="display-4">{{ overview.total_pages }}</h2>
+                <p class="card-text">Pages traitées par OCR</p>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <div class="small text-white">Temps moyen: {{ overview.avg_time_per_page|format_duration }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">Score moyen</h5>
+                <h2 class="display-4">{{ (overview.avg_confidence * 100)|round(1) }}%</h2>
+                <p class="card-text">Score de confiance moyen</p>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <div class="small text-white">Écart-type: {{ (overview.confidence_std * 100)|round(1) }}%</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">Fournisseur le plus rapide</h5>
+                <h2 class="display-4">{{ overview.fastest_provider }}</h2>
+                <p class="card-text">{{ overview.fastest_provider_time|format_duration }} / page</p>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <div class="small text-white">Le plus précis: {{ overview.most_accurate_provider }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comparaison des fournisseurs OCR -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-chart-bar me-1"></i>
+        Comparaison des fournisseurs OCR
+    </div>
+    <div class="card-body">
+        <div class="chart-container" style="position: relative; height:400px;">
+            <canvas id="providersComparisonChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Tableau des métriques détaillées -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-table me-1"></i>
+        Métriques détaillées par fournisseur
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover" id="metrics-table">
+                <thead>
+                    <tr>
+                        <th>Fournisseur OCR</th>
+                        <th>Tâches</th>
+                        <th>Taux de réussite</th>
+                        <th>Pages traitées</th>
+                        <th>Temps par page</th>
+                        <th>Score de confiance</th>
+                        <th>Taux d'erreur</th>
+                        <th>Caractères/sec</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for provider in providers_metrics %}
+                    <tr>
+                        <td>{{ provider.name }}</td>
+                        <td>{{ provider.tasks_count }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress me-2" style="width: 100px; height: 10px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ (provider.success_rate * 100)|round }}%;" aria-valuenow="{{ (provider.success_rate * 100)|round }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <span>{{ (provider.success_rate * 100)|round(1) }}%</span>
+                            </div>
+                        </td>
+                        <td>{{ provider.pages_count }}</td>
+                        <td>{{ provider.avg_time_per_page|format_duration }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress me-2" style="width: 100px; height: 10px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ (provider.avg_confidence * 100)|round }}%;" aria-valuenow="{{ (provider.avg_confidence * 100)|round }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <span>{{ (provider.avg_confidence * 100)|round(1) }}%</span>
+                            </div>
+                        </td>
+                        <td>{{ (provider.error_rate * 100)|round(2) }}%</td>
+                        <td>{{ provider.chars_per_second|round(1) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Métriques par type de document -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-file-alt me-1"></i>
+                Performance par type de document
+            </div>
+            <div class="card-body">
+                <canvas id="documentTypeChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-chart-line me-1"></i>
+                Évolution des performances
+            </div>
+            <div class="card-body">
+                <canvas id="performanceTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analyse des erreurs -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        Analyse des erreurs
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h5 class="mb-3">Répartition des types d'erreurs</h5>
+                <canvas id="errorTypesChart"></canvas>
+            </div>
+            <div class="col-md-6">
+                <h5 class="mb-3">Erreurs les plus fréquentes</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Type d'erreur</th>
+                                <th>Fournisseur</th>
+                                <th>Occurences</th>
+                                <th>% des erreurs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for error in common_errors %}
+                            <tr>
+                                <td>{{ error.type }}</td>
+                                <td>{{ error.provider }}</td>
+                                <td>{{ error.count }}</td>
+                                <td>{{ error.percentage }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recommandations et optimisations -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-lightbulb me-1"></i>
+        Recommandations et optimisations
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-trophy me-1"></i>
+                        Fournisseur recommandé par type de document
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Type de document</th>
+                                        <th>Fournisseur recommandé</th>
+                                        <th>Raison</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rec in recommendations.by_document_type %}
+                                    <tr>
+                                        <td>{{ rec.document_type }}</td>
+                                        <td><strong>{{ rec.provider }}</strong></td>
+                                        <td>{{ rec.reason }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <i class="fas fa-cogs me-1"></i>
+                        Suggestions d'amélioration
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            {% for suggestion in recommendations.suggestions %}
+                            <li class="list-group-item">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                {{ suggestion }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Bouton de rafraîchissement
+        document.getElementById('refresh-metrics').addEventListener('click', function() {
+            location.reload();
+        });
+        
+        // Initialisation des graphiques
+        initProvidersComparisonChart();
+        initDocumentTypeChart();
+        initPerformanceTrendChart();
+        initErrorTypesChart();
+    });
+    
+    // Graphique de comparaison des fournisseurs
+    function initProvidersComparisonChart() {
+        const ctx = document.getElementById('providersComparisonChart').getContext('2d');
+        
+        const providers = {{ providers_metrics|map(attribute='name')|list|tojson }};
+        const successRates = {{ providers_metrics|map(attribute='success_rate')|list|tojson }}.map(v => v * 100);
+        const confidenceScores = {{ providers_metrics|map(attribute='avg_confidence')|list|tojson }}.map(v => v * 100);
+        const processingTimes = {{ providers_metrics|map(attribute='avg_time_per_page')|list|tojson }};
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: providers,
+                datasets: [
+                    {
+                        label: 'Taux de réussite (%)',
+                        data: successRates,
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Score de confiance (%)',
+                        data: confidenceScores,
+                        backgroundColor: 'rgba(0, 123, 255, 0.7)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Temps par page (s)',
+                        data: processingTimes,
+                        backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Pourcentage (%)'
+                        },
+                        min: 0,
+                        max: 100
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Temps (s)'
+                        },
+                        min: 0,
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Graphique par type de document
+    function initDocumentTypeChart() {
+        const ctx = document.getElementById('documentTypeChart').getContext('2d');
+        
+        // Données par type de document
+        const documentTypes = {{ document_types|map(attribute='type')|list|tojson }};
+        const accuracyByType = {{ document_types|map(attribute='accuracy')|list|tojson }}.map(v => v * 100);
+        const timeByType = {{ document_types|map(attribute='avg_time')|list|tojson }};
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: documentTypes,
+                datasets: [
+                    {
+                        label: 'Précision (%)',
+                        data: accuracyByType,
+                        backgroundColor: 'rgba(23, 162, 184, 0.7)',
+                        borderColor: 'rgba(23, 162, 184, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Temps moyen (s)',
+                        data: timeByType,
+                        backgroundColor: 'rgba(102, 16, 242, 0.7)',
+                        borderColor: 'rgba(102, 16, 242, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Précision (%)'
+                        },
+                        min: 0,
+                        max: 100
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Temps (s)'
+                        },
+                        min: 0,
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Graphique d'évolution des performances
+    function initPerformanceTrendChart() {
+        const ctx = document.getElementById('performanceTrendChart').getContext('2d');
+        
+        // Données d'évolution
+        const timeLabels = {{ performance_trend.dates|tojson }};
+        const datasetsByProvider = {};
+        
+        {% for provider, scores in performance_trend.scores.items() %}
+        datasetsByProvider['{{ provider }}'] = {{ scores|tojson }}.map(v => v * 100);
+        {% endfor %}
+        
+        const datasets = Object.keys(datasetsByProvider).map((provider, index) => {
+            const colors = [
+                'rgba(0, 123, 255, 1)',
+                'rgba(40, 167, 69, 1)',
+                'rgba(220, 53, 69, 1)',
+                'rgba(255, 193, 7, 1)',
+                'rgba(23, 162, 184, 1)'
+            ];
+            
+            return {
+                label: provider,
+                data: datasetsByProvider[provider],
+                borderColor: colors[index % colors.length],
+                backgroundColor: colors[index % colors.length].replace('1)', '0.1)'),
+                tension: 0.4,
+                fill: false
+            };
+        });
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timeLabels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Score de confiance (%)'
+                        },
+                        min: 0,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+    
+    // Graphique des types d'erreurs
+    function initErrorTypesChart() {
+        const ctx = document.getElementById('errorTypesChart').getContext('2d');
+        
+        // Données des types d'erreurs
+        const errorTypes = {{ error_analysis.types|map(attribute='type')|list|tojson }};
+        const errorCounts = {{ error_analysis.types|map(attribute='count')|list|tojson }};
+        
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: errorTypes,
+                datasets: [{
+                    data: errorCounts,
+                    backgroundColor: [
+                        'rgba(220, 53, 69, 0.7)',
+                        'rgba(255, 193, 7, 0.7)',
+                        'rgba(23, 162, 184, 0.7)',
+                        'rgba(102, 16, 242, 0.7)',
+                        'rgba(40, 167, 69, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(220, 53, 69, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(23, 162, 184, 1)',
+                        'rgba(102, 16, 242, 1)',
+                        'rgba(40, 167, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${context.label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

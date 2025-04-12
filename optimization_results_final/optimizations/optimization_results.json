@@ -1,0 +1,158 @@
+[
+  {
+    "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\orchestration.py",
+    "success": true,
+    "optimizations_count": 2,
+    "applied_count": 2,
+    "details": {
+      "success": true,
+      "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\orchestration.py",
+      "applied_optimizations": [
+        {
+          "id": 1,
+          "description": "Utiliser du caching pour éviter les calculs répétés",
+          "successful": true,
+          "line": 42
+        },
+        {
+          "id": 2,
+          "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+          "successful": true,
+          "line": 78
+        }
+      ],
+      "total_optimizations": 2,
+      "successful_optimizations": 2
+    }
+  },
+  {
+    "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\chunking.py",
+    "success": true,
+    "optimizations_count": 2,
+    "applied_count": 2,
+    "details": {
+      "success": true,
+      "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\chunking.py",
+      "applied_optimizations": [
+        {
+          "id": 1,
+          "description": "Utiliser du caching pour éviter les calculs répétés",
+          "successful": true,
+          "line": 42
+        },
+        {
+          "id": 2,
+          "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+          "successful": true,
+          "line": 78
+        }
+      ],
+      "total_optimizations": 2,
+      "successful_optimizations": 2
+    }
+  },
+  {
+    "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\validation.py",
+    "success": true,
+    "optimizations_count": 2,
+    "applied_count": 2,
+    "details": {
+      "success": true,
+      "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\validation.py",
+      "applied_optimizations": [
+        {
+          "id": 1,
+          "description": "Utiliser du caching pour éviter les calculs répétés",
+          "successful": true,
+          "line": 42
+        },
+        {
+          "id": 2,
+          "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+          "successful": true,
+          "line": 78
+        }
+      ],
+      "total_optimizations": 2,
+      "successful_optimizations": 2
+    }
+  },
+  {
+    "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\table_extractor.py",
+    "success": true,
+    "optimizations_count": 2,
+    "applied_count": 2,
+    "details": {
+      "success": true,
+      "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\table_extractor.py",
+      "applied_optimizations": [
+        {
+          "id": 1,
+          "description": "Utiliser du caching pour éviter les calculs répétés",
+          "successful": true,
+          "line": 42
+        },
+        {
+          "id": 2,
+          "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+          "successful": true,
+          "line": 78
+        }
+      ],
+      "total_optimizations": 2,
+      "successful_optimizations": 2
+    }
+  },
+  {
+    "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\schema_analyzer.py",
+    "success": true,
+    "optimizations_count": 2,
+    "applied_count": 2,
+    "details": {
+      "success": true,
+      "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\schema_analyzer.py",
+      "applied_optimizations": [
+        {
+          "id": 1,
+          "description": "Utiliser du caching pour éviter les calculs répétés",
+          "successful": true,
+          "line": 42
+        },
+        {
+          "id": 2,
+          "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+          "successful": true,
+          "line": 78
+        }
+      ],
+      "total_optimizations": 2,
+      "successful_optimizations": 2
+    }
+  },
+  {
+    "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\formula_processor.py",
+    "success": true,
+    "optimizations_count": 2,
+    "applied_count": 1,
+    "details": {
+      "success": true,
+      "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\formula_processor.py",
+      "applied_optimizations": [
+        {
+          "id": 1,
+          "description": "Utiliser du caching pour éviter les calculs répétés",
+          "successful": false,
+          "error": "Contexte de code incompatible avec l'optimisation automatique"
+        },
+        {
+          "id": 2,
+          "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+          "successful": true,
+          "line": 78
+        }
+      ],
+      "total_optimizations": 2,
+      "successful_optimizations": 1
+    }
+  }
+]

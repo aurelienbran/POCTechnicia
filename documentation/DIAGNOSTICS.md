@@ -1,5 +1,8 @@
 # Guide des Outils de Diagnostic
 
+> **ℹ️ Note ℹ️**  
+> Pour les diagnostics spécifiques au tableau de bord OCR, consultez également : [OCR_DASHBOARD_COMPLET.md](./OCR_DASHBOARD_COMPLET.md)
+
 ## Vue d'ensemble
 
 Les outils de diagnostic permettent d'analyser et d'améliorer la qualité des réponses du système RAG en examinant trois composants principaux :
@@ -57,6 +60,71 @@ stats = response_analyzer.analyze_response_structure(response)
     "content_stats": {...},
     "potential_issues": [...]
 }
+```
+
+## Diagnostics OCR
+
+Les outils de diagnostic OCR permettent d'analyser et d'optimiser la qualité de reconnaissance de texte dans les documents PDF.
+
+### 1. OCR Quality Analyzer
+Évalue la qualité de la reconnaissance de texte :
+- Score de confiance par page
+- Détection des zones problématiques
+- Analyse comparative entre fournisseurs OCR
+
+```python
+ocr_metrics = await ocr_analyzer.analyze_quality(file_path)
+# Retourne :
+{
+    "confidence_score": 0.87,
+    "problematic_areas": [
+        {"page": 2, "zone": "table", "confidence": 0.65},
+        {"page": 5, "zone": "image_caption", "confidence": 0.72}
+    ],
+    "recommended_provider": "google_document_ai"
+}
+```
+
+### 2. OCR Performance Analyzer
+Évalue les performances des différents fournisseurs OCR :
+- Temps de traitement par page
+- Consommation de ressources
+- Comparaison des résultats entre fournisseurs
+
+```python
+performance = await ocr_analyzer.benchmark_providers(file_path)
+# Retourne :
+{
+    "providers": {
+        "tesseract": {"time": 1.2, "quality": 0.81},
+        "azure": {"time": 0.8, "quality": 0.88},
+        "google": {"time": 0.9, "quality": 0.92}
+    },
+    "optimal_provider": "google"
+}
+```
+
+### 3. Interface de Diagnostic dans le Tableau de Bord
+Le tableau de bord OCR intègre une interface de diagnostic accessible via :
+```
+http://localhost:8000/dashboard/diagnostics
+```
+
+Cette interface permet de :
+- Exécuter des analyses de qualité sur demande
+- Visualiser les zones problématiques sur les documents
+- Comparer visuellement les résultats entre différents fournisseurs
+- Générer des rapports détaillés pour l'optimisation
+
+### 4. Tests Automatisés
+Les scripts de test automatisés pour l'OCR se trouvent dans :
+```
+scripts/tests/ocr_quality_tests.py
+```
+
+Exécution des tests automatisés :
+```bash
+python scripts/tests/ocr_quality_tests.py --doc-type=technical --provider=all
 ```
 
 ## API Endpoints

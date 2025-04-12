@@ -1,0 +1,687 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Détails de la tâche - Tableau de Bord OCR{% endblock %}
+
+{% block page_title %}Détails de la tâche OCR{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <a href="{{ url_for('dashboard_active_tasks') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Retour aux tâches
+    </a>
+</div>
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-primary" id="refresh-task-detail">
+        <i class="fas fa-sync-alt"></i> Rafraîchir
+    </button>
+</div>
+{% if task.state == 'failed' or task.state == 'completed' %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-success btn-retry-task" data-task-id="{{ task.task_id }}">
+        <i class="fas fa-redo"></i> Relancer
+    </button>
+</div>
+{% endif %}
+{% if task.output_path and task.state == 'completed' %}
+<div class="btn-group me-2">
+    <a href="{{ url_for('download_file', filepath=task.output_path) }}" class="btn btn-sm btn-outline-primary">
+        <i class="fas fa-download"></i> Télécharger le résultat
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Informations de base de la tâche -->
+        <div class="card mb-4 task-detail-header">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">{{ task.name }}</h4>
+                    <span class="badge bg-{{ task.state|state_color }} fs-6">{{ task.state|state_label }}</span>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="text-muted mb-1">ID de tâche</p>
+                        <p class="mb-3"><code>{{ task.task_id }}</code></p>
+                        
+                        <p class="text-muted mb-1">Document source</p>
+                        <p class="mb-3">{{ task.document_path|basename }}</p>
+                        
+                        <p class="text-muted mb-1">Fournisseur OCR</p>
+                        <p class="mb-3">{{ task.ocr_provider }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="text-muted mb-1">Créée le</p>
+                        <p class="mb-3">{{ task.created_at|format_datetime }}</p>
+                        
+                        <p class="text-muted mb-1">Mise à jour le</p>
+                        <p class="mb-3">{{ task.updated_at|format_datetime }}</p>
+                        
+                        <p class="text-muted mb-1">Temps de traitement</p>
+                        <p class="mb-3">
+                            {% if task.state == 'completed' %}
+                                {{ task.processing_time|format_duration }}
+                            {% elif task.state == 'running' %}
+                                <span class="task-duration" data-started="{{ task.started_at }}">{{ task.duration|format_duration }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                {% if task.description %}
+                <div class="mt-2">
+                    <p class="text-muted mb-1">Description</p>
+                    <p class="mb-0">{{ task.description }}</p>
+                </div>
+                {% endif %}
+                
+                {% if task.state == 'running' or task.state == 'paused' %}
+                <div class="mt-3">
+                    <p class="text-muted mb-1">Progression</p>
+                    <div class="progress task-detail-progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: {{ task.progress * 100 }}%;" 
+                             aria-valuenow="{{ task.progress * 100 }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ task.progress|format_percent }}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">Page {{ task.current_page + 1 }}/{{ task.total_pages }}</small>
+                        <small class="text-muted">{{ task.progress|format_percent }}</small>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if task.state == 'running' or task.state == 'paused' %}
+                <div class="mt-3">
+                    <div class="btn-group">
+                        {% if task.state == 'running' %}
+                        <button type="button" class="btn btn-warning btn-pause-task" data-task-id="{{ task.task_id }}">
+                            <i class="fas fa-pause me-1"></i> Mettre en pause
+                        </button>
+                        {% elif task.state == 'paused' %}
+                        <button type="button" class="btn btn-primary btn-resume-task" data-task-id="{{ task.task_id }}">
+                            <i class="fas fa-play me-1"></i> Reprendre
+                        </button>
+                        {% endif %}
+                        <button type="button" class="btn btn-danger btn-cancel-task" data-task-id="{{ task.task_id }}">
+                            <i class="fas fa-times me-1"></i> Annuler
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Métriques de performance -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-chart-bar me-1"></i>
+                Métriques de performance
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="metric-card text-center">
+                            <div class="metric-value" id="confidence-score">
+                                {{ (task.metrics.confidence_score|default(0) * 100)|round(1) }}%
+                            </div>
+                            <div class="metric-label">Score de confiance</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card text-center">
+                            <div class="metric-value" id="chars-per-second">
+                                {{ task.metrics.chars_per_second|default(0)|round(1) }}
+                            </div>
+                            <div class="metric-label">Caractères/seconde</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card text-center">
+                            <div class="metric-value" id="pages-per-minute">
+                                {{ task.metrics.pages_per_minute|default(0)|round(1) }}
+                            </div>
+                            <div class="metric-label">Pages/minute</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card text-center">
+                            <div class="metric-value" id="error-rate">
+                                {{ (task.metrics.error_rate|default(0) * 100)|round(1) }}%
+                            </div>
+                            <div class="metric-label">Taux d'erreur</div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if task.state == 'completed' %}
+                <!-- Graphique de performance par page -->
+                <div class="mb-3">
+                    <h5>Performance par page</h5>
+                    <canvas id="pagePerformanceChart"></canvas>
+                </div>
+                {% endif %}
+                
+                <!-- Statistiques détaillées -->
+                {% if task.metrics %}
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Métrique</th>
+                                <th>Valeur</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for metric, value in task.metrics.items() %}
+                            <tr>
+                                <td>{{ metric|replace('_', ' ')|title }}</td>
+                                <td>
+                                    {% if metric.endswith('rate') or metric.endswith('score') %}
+                                        {{ (value * 100)|round(2) }}%
+                                    {% elif metric.endswith('time') %}
+                                        {{ value|format_duration }}
+                                    {% else %}
+                                        {{ value }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ metrics_descriptions.get(metric, '') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Journal d'activité -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-history me-1"></i>
+                Journal d'activité
+            </div>
+            <div class="card-body">
+                <div class="checkpoint-timeline">
+                    {% for checkpoint in task.checkpoints|sort(attribute='timestamp', reverse=True) %}
+                    <div class="checkpoint">
+                        <div class="checkpoint-time">{{ checkpoint.timestamp|format_datetime }}</div>
+                        <div class="checkpoint-title">{{ checkpoint.title }}</div>
+                        <div class="checkpoint-content">{{ checkpoint.description }}</div>
+                        {% if checkpoint.metadata %}
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#checkpoint-{{ loop.index }}">
+                                Détails
+                            </button>
+                            <div class="collapse mt-2" id="checkpoint-{{ loop.index }}">
+                                <div class="card card-body">
+                                    <pre class="mb-0"><code>{{ checkpoint.metadata|tojson(indent=2) }}</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted">
+                        <p>Aucun point de contrôle enregistré</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Aperçu du document -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-file-alt me-1"></i>
+                Aperçu du document
+            </div>
+            <div class="card-body">
+                {% if task.document_thumbnail %}
+                <img src="{{ task.document_thumbnail }}" class="img-fluid mb-3" alt="Aperçu du document">
+                {% else %}
+                <div class="text-center p-5 bg-light mb-3">
+                    <i class="fas fa-file-pdf fa-4x text-muted"></i>
+                    <p class="mt-2 text-muted">Aperçu non disponible</p>
+                </div>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <h6>Détails du document</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Type
+                            <span class="badge bg-secondary">{{ task.document_type|default('PDF') }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Pages
+                            <span class="badge bg-primary">{{ task.total_pages }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Taille
+                            <span class="badge bg-info">{{ task.document_size|default(0)|filesizeformat }}</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('preview_document', file_path=task.document_path) }}" class="btn btn-outline-primary" target="_blank">
+                        <i class="fas fa-external-link-alt me-1"></i> Voir le document
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Erreurs et avertissements -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-exclamation-triangle me-1"></i>
+                Erreurs et avertissements
+            </div>
+            <div class="card-body">
+                {% for error in task.errors %}
+                <div class="alert alert-{{ error.level }} mb-3">
+                    <div class="d-flex">
+                        <div class="me-2">
+                            {% if error.level == 'danger' %}
+                            <i class="fas fa-times-circle"></i>
+                            {% elif error.level == 'warning' %}
+                            <i class="fas fa-exclamation-triangle"></i>
+                            {% else %}
+                            <i class="fas fa-info-circle"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h6 class="alert-heading">{{ error.title }}</h6>
+                            <p class="mb-0">{{ error.message }}</p>
+                            <small class="text-muted">{{ error.timestamp|format_datetime }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <p>Aucune erreur détectée</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Métadonnées supplémentaires -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-info-circle me-1"></i>
+                Métadonnées
+            </div>
+            <div class="card-body">
+                {% if task.metadata %}
+                <div class="accordion" id="metadataAccordion">
+                    {% for key, value in task.metadata.items() %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading-{{ key }}">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ key }}" aria-expanded="false" aria-controls="collapse-{{ key }}">
+                                {{ key|replace('_', ' ')|title }}
+                            </button>
+                        </h2>
+                        <div id="collapse-{{ key }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ key }}" data-bs-parent="#metadataAccordion">
+                            <div class="accordion-body">
+                                {% if value is mapping or value is iterable and value is not string %}
+                                <pre><code>{{ value|tojson(indent=2) }}</code></pre>
+                                {% else %}
+                                {{ value }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <p>Aucune métadonnée disponible</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Rafraîchir les détails de la tâche
+        document.getElementById('refresh-task-detail').addEventListener('click', function() {
+            location.reload();
+        });
+        
+        // Mise à jour des durées pour les tâches en cours
+        updateDurations();
+        
+        {% if task.state == 'completed' %}
+        // Configuration du graphique de performance par page
+        setupPagePerformanceChart();
+        {% endif %}
+        
+        // Configurer les gestionnaires d'événements pour les boutons d'action
+        setupActionButtons();
+        
+        // Écouter les événements de mise à jour des tâches
+        setupRealTimeUpdates();
+    });
+    
+    // Mise à jour des durées
+    function updateDurations() {
+        const durationElements = document.querySelectorAll('.task-duration');
+        durationElements.forEach(element => {
+            const startedAt = element.getAttribute('data-started');
+            if (startedAt) {
+                const startTime = new Date(startedAt);
+                const now = new Date();
+                const durationMs = now - startTime;
+                element.textContent = formatDuration(durationMs / 1000);
+            }
+        });
+        
+        setTimeout(updateDurations, 1000);
+    }
+    
+    // Formater une durée en secondes
+    function formatDuration(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        
+        return `${h > 0 ? h + 'h ' : ''}${m > 0 || h > 0 ? m + 'm ' : ''}${s}s`;
+    }
+    
+    // Configuration du graphique de performance par page
+    function setupPagePerformanceChart() {
+        const ctx = document.getElementById('pagePerformanceChart');
+        if (!ctx) return;
+        
+        // Données de performance par page (exemple)
+        const pageData = {
+            labels: Array.from({ length: {{ task.total_pages }} }, (_, i) => `Page ${i + 1}`),
+            datasets: [
+                {
+                    label: 'Score de confiance',
+                    data: {{ task.page_metrics|map(attribute='confidence_score')|list|default([]) or Array.from({ length: task.total_pages }, () => Math.random() * 0.3 + 0.7) }}.map(score => score * 100),
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Temps de traitement (s)',
+                    data: {{ task.page_metrics|map(attribute='processing_time')|list|default([]) or Array.from({ length: task.total_pages }, () => Math.random() * 2 + 1) }},
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                    yAxisID: 'y1'
+                }
+            ]
+        };
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: pageData,
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Score de confiance (%)'
+                        },
+                        min: 0,
+                        max: 100
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Temps de traitement (s)'
+                        },
+                        min: 0,
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Configuration des gestionnaires d'événements pour les boutons d'action
+    function setupActionButtons() {
+        // Bouton de pause
+        const pauseButton = document.querySelector('.btn-pause-task');
+        if (pauseButton) {
+            pauseButton.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                
+                fetch(`/api/dashboard/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        state: 'paused'
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Erreur lors de la mise en pause de la tâche');
+                })
+                .then(data => {
+                    // Recharger la page
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert(error.message);
+                });
+            });
+        }
+        
+        // Bouton de reprise
+        const resumeButton = document.querySelector('.btn-resume-task');
+        if (resumeButton) {
+            resumeButton.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                
+                fetch(`/api/dashboard/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        state: 'running'
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Erreur lors de la reprise de la tâche');
+                })
+                .then(data => {
+                    // Recharger la page
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert(error.message);
+                });
+            });
+        }
+        
+        // Bouton d'annulation
+        const cancelButton = document.querySelector('.btn-cancel-task');
+        if (cancelButton) {
+            cancelButton.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                
+                if (!confirm('Êtes-vous sûr de vouloir annuler cette tâche ?')) {
+                    return;
+                }
+                
+                fetch(`/api/dashboard/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        state: 'failed',
+                        metadata: {
+                            cancelled: true,
+                            cancelled_at: new Date().toISOString()
+                        }
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Erreur lors de l\'annulation de la tâche');
+                })
+                .then(data => {
+                    // Recharger la page
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert(error.message);
+                });
+            });
+        }
+        
+        // Bouton de relance
+        const retryButton = document.querySelector('.btn-retry-task');
+        if (retryButton) {
+            retryButton.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                
+                // Récupérer les détails de la tâche actuelle
+                fetch(`/api/dashboard/tasks/${taskId}`)
+                    .then(response => response.json())
+                    .then(task => {
+                        return fetch('/api/dashboard/tasks', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                name: `${task.name} (relance)`,
+                                description: `Relance de la tâche ${task.task_id}`,
+                                document_path: task.document_path,
+                                output_path: task.output_path,
+                                ocr_provider: task.ocr_provider,
+                                metadata: {
+                                    ...task.metadata,
+                                    original_task_id: task.task_id
+                                }
+                            })
+                        });
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                        throw new Error('Erreur lors de la relance de la tâche');
+                    })
+                    .then(data => {
+                        // Rediriger vers les détails de la nouvelle tâche
+                        window.location.href = `/dashboard/tasks/${data.task_id}`;
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        alert(error.message);
+                    });
+            });
+        }
+    }
+    
+    // Configuration des mises à jour en temps réel
+    function setupRealTimeUpdates() {
+        // Initialiser la connexion WebSocket seulement pour les tâches en cours ou en pause
+        const taskState = '{{ task.state }}';
+        
+        if (taskState === 'running' || taskState === 'paused') {
+            const taskId = '{{ task.task_id }}';
+            
+            // Écouter les événements de mise à jour des tâches
+            document.addEventListener('task-updated', function(event) {
+                const updatedTask = event.detail;
+                
+                // Vérifier si c'est la tâche courante
+                if (updatedTask.task_id === taskId) {
+                    // Mettre à jour la progression
+                    const progressBar = document.querySelector('.progress-bar');
+                    if (progressBar) {
+                        const progressPercent = updatedTask.progress * 100;
+                        progressBar.style.width = `${progressPercent}%`;
+                        progressBar.setAttribute('aria-valuenow', progressPercent);
+                        progressBar.textContent = `${progressPercent.toFixed(1)}%`;
+                    }
+                    
+                    // Mettre à jour le compteur de pages
+                    const pageCounter = document.querySelector('.progress + div small:first-child');
+                    if (pageCounter) {
+                        pageCounter.textContent = `Page ${updatedTask.current_page + 1}/${updatedTask.total_pages}`;
+                    }
+                    
+                    // Mettre à jour le pourcentage
+                    const percentageText = document.querySelector('.progress + div small:last-child');
+                    if (percentageText) {
+                        percentageText.textContent = `${(updatedTask.progress * 100).toFixed(1)}%`;
+                    }
+                    
+                    // Si l'état a changé, recharger la page
+                    if (updatedTask.state !== taskState) {
+                        location.reload();
+                    }
+                    
+                    // Mettre à jour les métriques si elles existent
+                    if (updatedTask.metrics) {
+                        const confidenceScore = document.getElementById('confidence-score');
+                        if (confidenceScore && updatedTask.metrics.confidence_score !== undefined) {
+                            confidenceScore.textContent = `${(updatedTask.metrics.confidence_score * 100).toFixed(1)}%`;
+                        }
+                        
+                        const charsPerSecond = document.getElementById('chars-per-second');
+                        if (charsPerSecond && updatedTask.metrics.chars_per_second !== undefined) {
+                            charsPerSecond.textContent = updatedTask.metrics.chars_per_second.toFixed(1);
+                        }
+                        
+                        const pagesPerMinute = document.getElementById('pages-per-minute');
+                        if (pagesPerMinute && updatedTask.metrics.pages_per_minute !== undefined) {
+                            pagesPerMinute.textContent = updatedTask.metrics.pages_per_minute.toFixed(1);
+                        }
+                        
+                        const errorRate = document.getElementById('error-rate');
+                        if (errorRate && updatedTask.metrics.error_rate !== undefined) {
+                            errorRate.textContent = `${(updatedTask.metrics.error_rate * 100).toFixed(1)}%`;
+                        }
+                    }
+                }
+            });
+        }
+    }
+</script>
+{% endblock %}

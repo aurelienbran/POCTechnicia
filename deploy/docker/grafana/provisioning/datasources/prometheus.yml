@@ -1,0 +1,20 @@
+# Configuration de la source de données Prometheus pour Grafana
+# Version: 1.0
+# Date: 2 avril 2025
+#
+# Ce fichier définit la configuration de la source de données Prometheus
+# pour les tableaux de bord Grafana du système OCR Technicia.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      queryTimeout: "60s"
+      httpMethod: POST

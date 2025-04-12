@@ -9,6 +9,9 @@ import asyncio
 from datetime import datetime
 from fastapi import WebSocket, WebSocketDisconnect, APIRouter
 
+# Import du nouveau gestionnaire OCRDashboardManager
+from app.api.websockets.ocr_dashboard import dashboard_manager, websocket_task_endpoint, websocket_all_tasks_endpoint, start_update_service
+
 # Créer un router pour les endpoints WebSocket
 router = APIRouter()
 
@@ -239,45 +242,66 @@ async def disconnect_inactive_connections(websocket_manager):
 websocket_manager = OCRWebSocketManager()
 
 # Tâche en arrière-plan pour nettoyer les connexions inactives
-background_task = None
+background_tasks = set()
 
-def start_background_tasks():
+async def start_background_tasks():
     """Démarre les tâches en arrière-plan pour le gestionnaire WebSocket."""
-    global background_task
-    if background_task is None:
-        loop = asyncio.get_event_loop()
-        background_task = loop.create_task(disconnect_inactive_connections(websocket_manager))
-        logger.info("Tâche de nettoyage WebSocket démarrée")
+    loop = asyncio.get_event_loop()
+    task = loop.create_task(disconnect_inactive_connections(websocket_manager))
+    background_tasks.add(task)
+    
+    # Démarrer le service de mise à jour pour le gestionnaire de dashboard OCR
+    ocr_task = loop.create_task(start_update_service())
+    background_tasks.add(ocr_task)
+    
+    # S'assurer que les tâches sont correctement suivies
+    for task in background_tasks:
+        task.add_done_callback(background_tasks.discard)
 
 # Point d'entrée WebSocket principal
-@router.websocket("/ws")
+@router.websocket("/ws/ocr")
 async def websocket_endpoint(websocket: WebSocket):
-    """Point d'entrée WebSocket pour les mises à jour en temps réel."""
+    """
+    Point d'entrée WebSocket pour les mises à jour en temps réel.
+    
+    Args:
+        websocket: La connexion WebSocket à gérer
+    """
     await websocket_manager.connect(websocket)
     try:
-        # Démarrer les tâches en arrière-plan si ce n'est pas déjà fait
-        start_background_tasks()
-        
-        # Attendre et traiter les messages du client
         while True:
-            # Attendre un message avec timeout
+            data = await websocket.receive_text()
             try:
-                data = await asyncio.wait_for(websocket.receive_text(), timeout=60)
-                try:
-                    message = json.loads(data)
-                    await websocket_manager.handle_message(websocket, message)
-                except json.JSONDecodeError:
-                    logger.error(f"Message WebSocket invalide reçu: {data}")
-            except asyncio.TimeoutError:
-                # Continuer la boucle, c'est normal qu'il n'y ait pas de message
-                continue
-            except Exception as e:
-                logger.error(f"Erreur lors du traitement du message WebSocket: {e}")
-                break
+                message = json.loads(data)
+                
+                # Si c'est un ping, on répond par un pong
+                if message.get("type") == "ping":
+                    await websocket.send_json({"type": "pong", "timestamp": time.time()})
+                
+            except json.JSONDecodeError:
+                logger.warning(f"Message WebSocket invalide reçu: {data}")
+                
     except WebSocketDisconnect:
-        logger.info("Client WebSocket déconnecté normalement")
-    except Exception as e:
-        logger.error(f"Erreur WebSocket: {e}")
-    finally:
-        # S'assurer que la connexion est nettoyée
-        await websocket_manager.disconnect(websocket)
+        websocket_manager.disconnect(websocket)
+
+# Points d'entrée WebSocket pour le tableau de bord OCR
+@router.websocket("/ws/ocr/task/{task_id}")
+async def ocr_task_websocket(websocket: WebSocket, task_id: str):
+    """
+    Point d'entrée WebSocket pour suivre une tâche OCR spécifique.
+    
+    Args:
+        websocket: La connexion WebSocket
+        task_id: L'identifiant de la tâche à suivre
+    """
+    await websocket_task_endpoint(websocket, task_id)
+
+@router.websocket("/ws/ocr/all")
+async def ocr_all_tasks_websocket(websocket: WebSocket):
+    """
+    Point d'entrée WebSocket pour suivre toutes les tâches OCR.
+    
+    Args:
+        websocket: La connexion WebSocket
+    """
+    await websocket_all_tasks_endpoint(websocket)

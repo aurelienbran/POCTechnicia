@@ -1,5 +1,9 @@
 # Installation des dépendances OCR pour Technicia
 
+> **ℹ️ Note ℹ️**  
+> Ce document détaille l'installation des prérequis OCR.  
+> Pour une documentation complète sur le système OCR et son tableau de bord, consultez : [OCR_DASHBOARD_COMPLET.md](./OCR_DASHBOARD_COMPLET.md)
+
 Pour que la fonctionnalité OCR fonctionne correctement, vous devez installer les dépendances suivantes sur votre système et les ajouter au PATH:
 
 ## 1. Tesseract OCR

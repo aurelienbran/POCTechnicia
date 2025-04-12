@@ -1,0 +1,49 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport de test des modules</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        .summary { font-size: 1.2em; margin: 20px 0; padding: 10px; background-color: #f8f9fa; border-radius: 4px; }
+        .status { color: #d9534f; font-weight: bold; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .success { color: #5cb85c; }
+        .failure { color: #d9534f; }
+        .warning { color: #f0ad4e; }
+    </style>
+</head>
+<body>
+    <h1>Rapport de test des modules Technicia</h1>
+    <p>Date du test: 2025-04-10 18:16:18</p>
+    
+    <div class="summary">
+        <p>Statut global: <span class="status">FAILURE</span></p>
+        <p>Tests rÃ©ussis: <span class="success">16</span></p>
+        <p>Tests Ã©chouÃ©s: <span class="failure">9</span></p>
+        <p>Avertissements: <span class="warning">0</span></p>
+    </div>
+    
+    <h2>DÃ©tails des tests</h2>
+    <table>
+        <tr>
+            <th>Test</th>
+            <th>RÃ©sultat</th>
+            <th>DÃ©tails</th>
+            <th>Horodatage</th>
+        </tr>
+        <tr><td>Module Logger</td><td class='success'>Success</td><td>ChargÃ© avec succÃ¨s</td><td>18:16:18</td></tr><tr><td>Module Prerequisites</td><td class='success'>Success</td><td>ChargÃ© avec succÃ¨s</td><td>18:16:18</td></tr><tr><td>Module Software</td><td class='success'>Success</td><td>ChargÃ© avec succÃ¨s</td><td>18:16:18</td></tr><tr><td>Module Network</td><td class='success'>Success</td><td>ChargÃ© avec succÃ¨s</td><td>18:16:18</td></tr><tr><td>Module Security</td><td class='success'>Success</td><td>ChargÃ© avec succÃ¨s</td><td>18:16:18</td></tr><tr><td>Module Data</td><td class='success'>Success</td><td>ChargÃ© avec succÃ¨s</td><td>18:16:18</td></tr><tr><td>Module Database</td><td class='success'>Success</td><td>ChargÃ© avec succÃ¨s</td><td>18:16:18</td></tr><tr><td>Fonction Set-NetworkConfiguration (variable)</td><td class='success'>Success</td><td>[RÃ©seau] Accessible via variable Set_NetworkConfiguration</td><td>18:16:18</td></tr><tr><td>Fonction Test-NetworkConnectivity</td><td class='failure'>Failure</td><td>[RÃ©seau] Fonction non accessible</td><td>18:16:18</td></tr><tr><td>Fonction Start-NetworkService</td><td class='failure'>Failure</td><td>[RÃ©seau] Fonction non accessible</td><td>18:16:18</td></tr><tr><td>Fonction Stop-NetworkService</td><td class='failure'>Failure</td><td>[RÃ©seau] Fonction non accessible</td><td>18:16:18</td></tr><tr><td>Fonction Set-SecurityConfiguration (variable)</td><td class='success'>Success</td><td>[SÃ©curitÃ©] Accessible via variable Set_SecurityConfiguration</td><td>18:16:18</td></tr><tr><td>Fonction Test-SecurityCompliance</td><td class='failure'>Failure</td><td>[SÃ©curitÃ©] Fonction non accessible</td><td>18:16:18</td></tr><tr><td>Fonction New-SecurityCertificate</td><td class='failure'>Failure</td><td>[SÃ©curitÃ©] Fonction non accessible</td><td>18:16:18</td></tr><tr><td>Fonction New-DatabaseInstance</td><td class='failure'>Failure</td><td>[Base de donnÃ©es] Fonction non accessible</td><td>18:16:18</td></tr><tr><td>Fonction Set-DatabaseConfiguration</td><td class='failure'>Failure</td><td>[Base de donnÃ©es] Fonction non accessible</td><td>18:16:18</td></tr><tr><td>Fonction Test-DatabaseConnection (variable)</td><td class='success'>Success</td><td>[Base de donnÃ©es] Accessible via variable Test_DatabaseConnection</td><td>18:16:18</td></tr><tr><td>Fonction Write-LogMessage (variable)</td><td class='success'>Success</td><td>[Logging] Accessible via variable Write_LogMessage</td><td>18:16:18</td></tr><tr><td>Fonction Start-LogSection (variable)</td><td class='success'>Success</td><td>[Logging] Accessible via variable Start_LogSection</td><td>18:16:18</td></tr><tr><td>Fonction Start-LogTask (variable)</td><td class='success'>Success</td><td>[Logging] Accessible via variable Start_LogTask</td><td>18:16:18</td></tr><tr><td>Fonction Complete-LogTask (variable)</td><td class='success'>Success</td><td>[Logging] Accessible via variable Complete_LogTask</td><td>18:16:18</td></tr><tr><td>Fonction Write-DetailedLog</td><td class='failure'>Failure</td><td>[Logging] Fonction non accessible</td><td>18:16:18</td></tr><tr><td>Fonction Start-DataPreparation (variable)</td><td class='success'>Success</td><td>[DonnÃ©es] Accessible via variable Start_DataPreparation</td><td>18:16:18</td></tr><tr><td>Fonction Import-SampleData</td><td class='failure'>Failure</td><td>[DonnÃ©es] Fonction non accessible</td><td>18:16:18</td></tr><tr><td>Fonction Test-DataIntegrity (variable)</td><td class='success'>Success</td><td>[DonnÃ©es] Accessible via variable Test_DataIntegrity</td><td>18:16:18</td></tr>
+    </table>
+    
+    <h2>Recommandations</h2>
+    <ul>
+        <li>Certains tests ont Ã©chouÃ©. Corrigez les problÃ¨mes avant de procÃ©der au dÃ©ploiement.</li><li>Assurez-vous que tous les modules sont prÃ©sents et utilisent les noms de fonctions standardisÃ©s.</li>
+    </ul>
+    
+    <p><small>Rapport gÃ©nÃ©rÃ© automatiquement par le script de test de modules Technicia.</small></p>
+</body>
+</html>

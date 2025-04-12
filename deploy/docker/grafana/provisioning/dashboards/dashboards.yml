@@ -1,0 +1,30 @@
+# Configuration des tableaux de bord Grafana
+# Version: 1.0
+# Date: 2 avril 2025
+#
+# Ce fichier configure les sources des tableaux de bord Grafana
+# pour le monitoring du système OCR Technicia.
+
+apiVersion: 1
+
+providers:
+  # <string> Provider name
+  - name: 'Technicia OCR Dashboards'
+    # <int> Ordre de traitement des tableaux de bord, les tableaux de bord des fournisseurs sont triés par cette propriété.
+    orgId: 1
+    # <string> nom du dossier. Tous les tableaux de bord de ce fournisseur seront stockés dans ce dossier.
+    folder: 'Technicia'
+    # <string> Type de fournisseur
+    type: file
+    # <bool> désactiver le tableau de bord de suppression depuis Grafana UI. Uniquement pour les tableaux de bord qui sont maintenus par le fournisseur.
+    disableDeletion: true
+    # <bool> active/désactive le bouton Enregistrer le tableau de bord dans Grafana UI.
+    editable: false
+    # <int> comment traiter les erreurs d'analyse du tableau de bord.
+    # Choisir entre : ignore, warn, error
+    # Pour les tableaux de bord gérés par l'infrastructure, l'option recommandée est warn
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      # <string, obligatoire> chemin vers les tableaux de bord d'un dossier. Supporte les caractères génériques (*)
+      path: /etc/grafana/provisioning/dashboards/*.json

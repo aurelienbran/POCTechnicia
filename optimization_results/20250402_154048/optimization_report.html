@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rapport d'optimisation (DÉMO) - 2025-04-02</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+        h1, h2, h3 { color: #2c3e50; }
+        .card { background-color: #f9f9f9; border-radius: 5px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .success { color: green; }
+        .failure { color: red; }
+        .warning { color: orange; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .metrics { display: flex; flex-wrap: wrap; }
+        .metric-card { flex: 1; min-width: 250px; margin: 10px; padding: 15px; border-radius: 5px; background-color: #f0f7ff; }
+        .critical { background-color: #ffdddd; }
+        .high { background-color: #ffe0cc; }
+        .medium { background-color: #fff6cc; }
+        .low { background-color: #e8f5e9; }
+        .demo-notice { background-color: #e8f5f2; border-left: 5px solid #00796b; padding: 10px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Rapport d'optimisation du système OCR (Version de démonstration)</h1>
+    
+    <div class="demo-notice">
+        <p><strong>Note:</strong> Ce rapport est généré par une version de démonstration du système d'optimisation. 
+        Les données présentées sont simulées à des fins d'illustration.</p>
+    </div>
+    
+    <p><strong>Date:</strong> 2025-04-02 15:40:59</p>
+    <p><strong>Durée totale:</strong> 0.00 secondes</p>
+    <p><strong>Statut:</strong> <span class="failure">
+        Échec
+    </span></p>
+    
+    <div class="card">
+        <h2>Résumé des résultats</h2>
+        <div class="metrics">
+            <div class="metric-card">
+                <h3>Analyse des benchmarks</h3>
+                <p><strong>Composants analysés:</strong> 6</p>
+                <p><strong>Goulots d'étranglement:</strong> 18</p>
+            </div>
+            <div class="metric-card">
+                <h3>Optimisations identifiées</h3>
+                <p><strong>Total:</strong> 36</p>
+                <p><strong>Automatisables:</strong> 12</p>
+                <p><strong>Manuelles:</strong> 24</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Goulots d'étranglement par sévérité</h2>
+        <table>
+            <tr>
+                <th>Sévérité</th>
+                <th>Nombre</th>
+            </tr>
+            <tr class="critical">
+                <td>Critique</td>
+                <td>16</td>
+            </tr>
+            <tr class="high">
+                <td>Élevée</td>
+                <td>2</td>
+            </tr>
+            <tr class="medium">
+                <td>Moyenne</td>
+                <td>0</td>
+            </tr>
+            <tr class="low">
+                <td>Faible</td>
+                <td>0</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="card">
+        <h2>Optimisations par type de métrique</h2>
+        <table>
+            <tr>
+                <th>Métrique</th>
+                <th>Nombre d'optimisations</th>
+            </tr>
+            <tr>
+                <td>Temps d'exécution</td>
+                <td>12</td>
+            </tr>
+            <tr>
+                <td>Utilisation mémoire</td>
+                <td>12</td>
+            </tr>
+            <tr>
+                <td>Utilisation CPU</td>
+                <td>12</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="card">
+        <h2>Détail des optimisations automatisables</h2>
+        <table>
+            <tr>
+                <th>Composant</th>
+                <th>Métrique</th>
+                <th>Sévérité</th>
+                <th>Description</th>
+            </tr>
+
+            <tr class="critical">
+                <td>orchestration</td>
+                <td>duration</td>
+                <td>Critical</td>
+                <td>Utiliser du caching pour éviter les calculs répétés</td>
+            </tr>
+            <tr class="critical">
+                <td>orchestration</td>
+                <td>memory_usage</td>
+                <td>Critical</td>
+                <td>Utiliser des générateurs au lieu de listes pour les grandes collections</td>
+            </tr>
+            <tr class="critical">
+                <td>chunking</td>
+                <td>duration</td>
+                <td>Critical</td>
+                <td>Utiliser du caching pour éviter les calculs répétés</td>
+            </tr>
+            <tr class="critical">
+                <td>chunking</td>
+                <td>memory_usage</td>
+                <td>Critical</td>
+                <td>Utiliser des générateurs au lieu de listes pour les grandes collections</td>
+            </tr>
+            <tr class="critical">
+                <td>validation</td>
+                <td>duration</td>
+                <td>Critical</td>
+                <td>Utiliser du caching pour éviter les calculs répétés</td>
+            </tr>
+            <tr class="critical">
+                <td>validation</td>
+                <td>memory_usage</td>
+                <td>Critical</td>
+                <td>Utiliser des générateurs au lieu de listes pour les grandes collections</td>
+            </tr>
+            <tr class="critical">
+                <td>table_extractor</td>
+                <td>duration</td>
+                <td>Critical</td>
+                <td>Utiliser du caching pour éviter les calculs répétés</td>
+            </tr>
+            <tr class="critical">
+                <td>table_extractor</td>
+                <td>memory_usage</td>
+                <td>Critical</td>
+                <td>Utiliser des générateurs au lieu de listes pour les grandes collections</td>
+            </tr>
+            <tr class="critical">
+                <td>schema_analyzer</td>
+                <td>duration</td>
+                <td>Critical</td>
+                <td>Utiliser du caching pour éviter les calculs répétés</td>
+            </tr>
+            <tr class="critical">
+                <td>schema_analyzer</td>
+                <td>memory_usage</td>
+                <td>Critical</td>
+                <td>Utiliser des générateurs au lieu de listes pour les grandes collections</td>
+            </tr>
+            <tr class="critical">
+                <td>formula_processor</td>
+                <td>duration</td>
+                <td>Critical</td>
+                <td>Utiliser du caching pour éviter les calculs répétés</td>
+            </tr>
+            <tr class="critical">
+                <td>formula_processor</td>
+                <td>memory_usage</td>
+                <td>Critical</td>
+                <td>Utiliser des générateurs au lieu de listes pour les grandes collections</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="card">
+        <h2>Recommandations générales</h2>
+        <ul>
+            <li>Revoir l'architecture des composants critiques identifiés</li>
+            <li>Optimiser en priorité les processeurs spécialisés qui consomment le plus de ressources</li>
+            <li>Envisager l'utilisation de caching pour les opérations répétées</li>
+            <li>Évaluer les stratégies de mise à l'échelle horizontale pour les charges importantes</li>
+
+        </ul>
+    </div>
+    
+    <footer>
+        <p>Généré automatiquement par le système d'optimisation Technicia (Version DÉMO)</p>
+    </footer>
+</body>
+</html>

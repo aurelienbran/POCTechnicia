@@ -1,0 +1,127 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport de test des modules Technicia</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background-color: #f2f2f2; padding: 10px; border-radius: 5px; }
+        .status-success { color: green; font-weight: bold; }
+        .status-warning { color: orange; font-weight: bold; }
+        .status-failure { color: red; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .result-success { color: green; }
+        .result-warning { color: orange; }
+        .result-failure { color: red; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Rapport de test des modules Technicia</h1>
+        <p>Date du test: 2025-04-10 18:41:40</p>
+    </div>
+    
+    <h2>RÃ©sumÃ©</h2>
+    <p>Tests rÃ©ussis: <span class="status-success">7</span></p>
+    <p>Tests Ã©chouÃ©s: <span class="status-failure">9</span></p>
+    <p>Avertissements: <span class="status-warning">0</span></p>
+    <p>Statut global: <span class="status-failure">FAILURE</span></p>
+    
+    <h2>DÃ©tails des tests</h2>
+    <table>
+        <tr>
+            <th>Test</th>
+            <th>RÃ©sultat</th>
+            <th>DÃ©tails</th>
+            <th>Heure</th>
+        </tr>        <tr>
+            <td>Chargement du module Logger</td>
+            <td class="result-success">Success</td>
+            <td>Module chargÃ© avec succÃ¨s</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Chargement du module Prerequisites</td>
+            <td class="result-success">Success</td>
+            <td>Module chargÃ© avec succÃ¨s</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Chargement du module Software</td>
+            <td class="result-success">Success</td>
+            <td>Module chargÃ© avec succÃ¨s</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Chargement du module Network</td>
+            <td class="result-success">Success</td>
+            <td>Module chargÃ© avec succÃ¨s</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Chargement du module Security</td>
+            <td class="result-success">Success</td>
+            <td>Module chargÃ© avec succÃ¨s</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Chargement du module Data</td>
+            <td class="result-success">Success</td>
+            <td>Module chargÃ© avec succÃ¨s</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Chargement du module Database</td>
+            <td class="result-success">Success</td>
+            <td>Module chargÃ© avec succÃ¨s</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Fonction Test-NetworkConnectivity</td>
+            <td class="result-failure">Failure</td>
+            <td>[RÃ©seau] Fonction non disponible</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Fonction Set-NetworkConfiguration</td>
+            <td class="result-failure">Failure</td>
+            <td>[RÃ©seau] Fonction non disponible</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Fonction Test-SecurityCompliance</td>
+            <td class="result-failure">Failure</td>
+            <td>[SÃ©curitÃ©] Fonction non disponible</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Fonction Set-SecurityConfiguration</td>
+            <td class="result-failure">Failure</td>
+            <td>[SÃ©curitÃ©] Fonction non disponible</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Fonction Write-LogMessage</td>
+            <td class="result-failure">Failure</td>
+            <td>[Journalisation] Fonction non disponible</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Fonction Start-LogSection</td>
+            <td class="result-failure">Failure</td>
+            <td>[Journalisation] Fonction non disponible</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Fonction Write-DetailedLog</td>
+            <td class="result-failure">Failure</td>
+            <td>[Journalisation] Fonction non disponible</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Fonction Import-SampleData</td>
+            <td class="result-failure">Failure</td>
+            <td>[DonnÃ©es] Fonction non disponible</td>
+            <td>18:41:40</td>
+        </tr>        <tr>
+            <td>Fonction Test-DataIntegrity</td>
+            <td class="result-failure">Failure</td>
+            <td>[DonnÃ©es] Fonction non disponible</td>
+            <td>18:41:40</td>
+        </tr>    </table>
+    
+    <h2>Recommandations</h2>
+    <ul>        <li>Des problÃ¨mes ont Ã©tÃ© dÃ©tectÃ©s. Corrigez-les avant de continuer avec le dÃ©ploiement.</li>
+        <li>VÃ©rifiez que tous les modules nÃ©cessaires sont prÃ©sents et correctement configurÃ©s.</li>    </ul>
+    
+    <p><small>Rapport gÃ©nÃ©rÃ© automatiquement par le script de test des modules Technicia.</small></p>
+</body>
+</html>

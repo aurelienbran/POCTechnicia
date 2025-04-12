@@ -1,6 +1,6 @@
 """Configuration de l'application."""
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -65,10 +65,20 @@ class Settings(BaseModel):
     # Paths
     UPLOAD_DIR: Path = Path("uploads").absolute()
     STORAGE_DIR: Path = Path("storage").absolute()
+    TEMP_DIR: Path = Path("temp").absolute()
+    
+    # Configuration de Celery
+    CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+    CELERY_RESULT_BACKEND: str = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+    
+    # Configuration des timeouts et du traitement par lots
+    EMBEDDING_BATCH_SIZE: int = int(os.getenv("EMBEDDING_BATCH_SIZE", "10"))
+    EMBEDDING_TIMEOUT: int = int(os.getenv("EMBEDDING_TIMEOUT", "600"))  # 10 minutes
 
 # Create required directories
 os.makedirs(Settings().UPLOAD_DIR, exist_ok=True)
 os.makedirs(Settings().STORAGE_DIR, exist_ok=True)
+os.makedirs(Settings().TEMP_DIR, exist_ok=True)
 
 # Instance singleton des paramètres
 settings = Settings()

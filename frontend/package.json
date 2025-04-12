@@ -14,7 +14,11 @@
     "lucide-react": "^0.344.0",
     "marked": "^12.0.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "socket.io-client": "^4.7.4",
+    "react-dropzone": "^14.2.3",
+    "react-toastify": "^10.0.4",
+    "react-loading-skeleton": "^3.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",

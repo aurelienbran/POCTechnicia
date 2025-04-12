@@ -1,0 +1,90 @@
+# Configuration Prometheus pour le système OCR Technicia
+# Version: 1.0
+# Date: 2 avril 2025
+#
+# Ce fichier définit la configuration de Prometheus pour la surveillance
+# de tous les composants du système OCR Technicia.
+
+global:
+  scrape_interval: 15s     # Intervalle de récupération par défaut pour les métriques
+  evaluation_interval: 15s # Fréquence d'évaluation des règles d'alerte
+  scrape_timeout: 10s      # Délai d'expiration pour les requêtes de récupération
+
+# Règles d'alertes
+rule_files:
+  - "rules/alerts.yml"
+
+# Configuration d'Alertmanager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # Ajouter la configuration d'Alertmanager lorsqu'il sera ajouté
+          # - alertmanager:9093
+
+# Configurations des cibles de scraping
+scrape_configs:
+  # Application OCR principale
+  - job_name: 'technicia-app'
+    scrape_interval: 10s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['app:5000']
+        labels:
+          service: 'ocr-app'
+          environment: 'production'
+
+  # Worker Celery
+  - job_name: 'technicia-worker'
+    scrape_interval: 30s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['worker:5555']
+        labels:
+          service: 'ocr-worker'
+          environment: 'production'
+
+  # Node Exporter pour les métriques du système
+  - job_name: 'node-exporter'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node-metrics'
+          environment: 'production'
+
+  # Monitoring Prometheus lui-même
+  - job_name: 'prometheus'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+          environment: 'production'
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres-exporter'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgres'
+          environment: 'production'
+
+  # Redis Exporter
+  - job_name: 'redis-exporter'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'redis'
+          environment: 'production'
+
+  # Nginx Exporter
+  - job_name: 'nginx-exporter'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+        labels:
+          service: 'nginx'
+          environment: 'production'

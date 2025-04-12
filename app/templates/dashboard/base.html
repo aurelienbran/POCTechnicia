@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tableau de Bord OCR Technicia{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='dashboard/css/dashboard.css') }}">
+    
+    {% block head_extras %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('dashboard_index') }}">
+                <i class="fas fa-tachometer-alt me-2"></i>
+                Tableau de Bord OCR
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'overview' %}active{% endif %}" href="{{ url_for('dashboard_index') }}">
+                            <i class="fas fa-home me-1"></i> Vue d'ensemble
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'active_tasks' %}active{% endif %}" href="{{ url_for('dashboard_active_tasks') }}">
+                            <i class="fas fa-tasks me-1"></i> Tâches actives
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'history' %}active{% endif %}" href="{{ url_for('dashboard_history') }}">
+                            <i class="fas fa-history me-1"></i> Historique
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'metrics' %}active{% endif %}" href="{{ url_for('dashboard_metrics') }}">
+                            <i class="fas fa-chart-bar me-1"></i> Métriques
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 d-none d-md-block sidebar">
+                <div class="list-group">
+                    <a href="{{ url_for('dashboard_index') }}" class="list-group-item list-group-item-action {% if active_page == 'overview' %}active{% endif %}">
+                        <i class="fas fa-home me-2"></i> Vue d'ensemble
+                    </a>
+                    <a href="{{ url_for('dashboard_active_tasks') }}" class="list-group-item list-group-item-action {% if active_page == 'active_tasks' %}active{% endif %}">
+                        <i class="fas fa-tasks me-2"></i> Tâches actives
+                    </a>
+                    <a href="{{ url_for('dashboard_history') }}" class="list-group-item list-group-item-action {% if active_page == 'history' %}active{% endif %}">
+                        <i class="fas fa-history me-2"></i> Historique
+                    </a>
+                    <a href="{{ url_for('dashboard_metrics') }}" class="list-group-item list-group-item-action {% if active_page == 'metrics' %}active{% endif %}">
+                        <i class="fas fa-chart-bar me-2"></i> Métriques
+                    </a>
+                    <hr>
+                    <a href="{{ url_for('dashboard_settings') }}" class="list-group-item list-group-item-action {% if active_page == 'settings' %}active{% endif %}">
+                        <i class="fas fa-cog me-2"></i> Paramètres
+                    </a>
+                    <a href="{{ url_for('dashboard_help') }}" class="list-group-item list-group-item-action {% if active_page == 'help' %}active{% endif %}">
+                        <i class="fas fa-question-circle me-2"></i> Aide
+                    </a>
+                </div>
+                
+                <!-- Recent Tasks -->
+                <div class="mt-4">
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                        <span>Tâches récentes</span>
+                    </h6>
+                    <div class="recent-tasks">
+                        {% for task in recent_tasks %}
+                        <a href="{{ url_for('dashboard_task_detail', task_id=task.task_id) }}" class="list-group-item list-group-item-action py-2 lh-sm">
+                            <div class="d-flex w-100 align-items-center justify-content-between">
+                                <strong class="mb-1">{{ task.name }}</strong>
+                                <small class="text-muted">{{ task.created_at|humanize }}</small>
+                            </div>
+                            <div class="d-flex w-100 align-items-center justify-content-between">
+                                <small class="text-{{ task.state|state_color }}">{{ task.state|state_label }}</small>
+                                <small>{{ task.progress|format_percent }}</small>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main content area -->
+            <main class="col-md-10 ms-sm-auto px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">{% block page_title %}Tableau de Bord OCR{% endblock %}</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        {% block page_actions %}{% endblock %}
+                    </div>
+                </div>
+                
+                {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.type }} alert-dismissible fade show">
+                        {{ message.content }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container">
+            <div class="d-flex justify-content-between">
+                <span class="text-muted">Tableau de Bord OCR Technicia &copy; 2025</span>
+                <span class="text-muted">Version 1.0.0</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', path='dashboard/js/dashboard.js') }}"></script>
+    
+    <!-- WebSocket Connection for Real-time Updates -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Établir la connexion WebSocket
+            const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
+            const ws_url = `${ws_scheme}://${window.location.host}/api/dashboard/ws`;
+            const ws = new WebSocket(ws_url);
+            
+            ws.onopen = function(event) {
+                console.log("Connexion WebSocket établie");
+                // Dispatch un événement personnalisé pour notifier les composants
+                document.dispatchEvent(new CustomEvent('websocket-connected'));
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                console.log("Message WebSocket reçu:", data);
+                
+                // Dispatch un événement personnalisé pour les mises à jour de tâches
+                if (data.type === 'task_update') {
+                    document.dispatchEvent(new CustomEvent('task-updated', { detail: data.task }));
+                }
+                
+                // Dispatch un événement personnalisé pour les suppressions de tâches
+                if (data.type === 'task_deletion') {
+                    document.dispatchEvent(new CustomEvent('task-deleted', { detail: data.task_id }));
+                }
+            };
+            
+            ws.onclose = function(event) {
+                console.log("Connexion WebSocket fermée");
+                // Tenter de se reconnecter après un délai
+                setTimeout(function() {
+                    console.log("Tentative de reconnexion WebSocket...");
+                    location.reload();
+                }, 5000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error("Erreur WebSocket:", error);
+            };
+            
+            // Stocker la connexion WebSocket dans une variable globale
+            window.dashboardWs = ws;
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

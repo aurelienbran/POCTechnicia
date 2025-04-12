@@ -79,6 +79,47 @@ python scripts/generate_report.py
 python scripts/cleanup_logs.py
 ```
 
+## Tableau de Bord OCR
+
+> **ℹ️ Note ℹ️**  
+> Pour une documentation complète du tableau de bord OCR, consultez : [OCR_DASHBOARD_COMPLET.md](./OCR_DASHBOARD_COMPLET.md)
+
+### Métriques OCR Disponibles
+1. **Performance par Fournisseur**
+   - Temps moyen de traitement par page
+   - Taux de réussite
+   - Qualité moyenne de reconnaissance
+   - Nombre de documents traités
+
+2. **Statistiques Globales**
+   - Nombre total de tâches (par statut)
+   - Répartition des types de documents
+   - Volume de données traitées
+   - Évolution des performances dans le temps
+
+3. **Métriques de Qualité**
+   - Score de confiance moyen
+   - Taux d'erreurs détectées
+   - Analyse comparative des fournisseurs
+
+### Accès au Tableau de Bord
+- Interface web : `http://localhost:8000/dashboard`
+- WebSockets : `ws://localhost:8000/ws/dashboard`
+- API REST : `http://localhost:8000/api/dashboard/metrics`
+
+### Exportation des Données
+Le tableau de bord permet l'exportation des métriques et statistiques au format :
+- CSV pour l'analyse dans des outils tiers
+- PDF pour les rapports
+- JSON pour l'intégration avec d'autres systèmes
+
+### Alertes et Notifications
+Le système peut être configuré pour envoyer des alertes en cas de :
+- Tâches en échec
+- Dépassement de seuils de performance
+- Files d'attente trop longues
+- Erreurs récurrentes
+
 ## Paramètres Actuels (25/02/2025)
 
 ### Recherche Sémantique

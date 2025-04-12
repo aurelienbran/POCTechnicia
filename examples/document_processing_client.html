@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client de Traitement de Documents - Technicia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .file-drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .file-drop-area.highlight {
+            border-color: #007bff;
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        #progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+        #result-container {
+            display: none;
+            margin-top: 20px;
+        }
+        #chunks-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        .chunk-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Traitement de Documents - Demo</h1>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                Charger un document
+            </div>
+            <div class="card-body">
+                <div class="file-drop-area" id="dropArea">
+                    <p>Glissez et déposez un fichier ici, ou cliquez pour sélectionner</p>
+                    <input type="file" id="fileInput" style="display: none;">
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="enableOcr" checked>
+                            <label class="form-check-label" for="enableOcr">Activer l'OCR pour les documents numérisés</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="synchronousProcessing">
+                            <label class="form-check-label" for="synchronousProcessing">Traitement synchrone</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="chunkSize" class="form-label">Taille des chunks</label>
+                        <input type="number" class="form-control" id="chunkSize" value="1000">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="chunkOverlap" class="form-label">Chevauchement</label>
+                        <input type="number" class="form-control" id="chunkOverlap" value="100">
+                    </div>
+                </div>
+                
+                <button id="processBtn" class="btn btn-primary" disabled>Traiter le document</button>
+            </div>
+        </div>
+        
+        <div id="progress-container" class="card mb-4">
+            <div class="card-header">
+                Progression
+            </div>
+            <div class="card-body">
+                <div id="status-message" class="alert alert-info">
+                    En attente de traitement...
+                </div>
+                <div class="progress">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="result-container" class="card">
+            <div class="card-header">
+                Résultats
+            </div>
+            <div class="card-body">
+                <div id="metadata-container">
+                    <h5>Métadonnées</h5>
+                    <pre id="metadata-output" class="p-3 bg-light"></pre>
+                </div>
+                
+                <div id="chunks-section">
+                    <h5>Chunks générés (<span id="chunks-count">0</span>)</h5>
+                    <div id="chunks-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = '/api/documents';
+        const AUTH_TOKEN = 'votre_token_ici'; // À remplacer par la logique d'authentification réelle
+        
+        // Éléments DOM
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const processBtn = document.getElementById('processBtn');
+        const enableOcr = document.getElementById('enableOcr');
+        const synchronousProcessing = document.getElementById('synchronousProcessing');
+        const chunkSize = document.getElementById('chunkSize');
+        const chunkOverlap = document.getElementById('chunkOverlap');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const statusMessage = document.getElementById('status-message');
+        const resultContainer = document.getElementById('result-container');
+        const metadataOutput = document.getElementById('metadata-output');
+        const chunksContainer = document.getElementById('chunks-container');
+        const chunksCount = document.getElementById('chunks-count');
+        
+        let selectedFile = null;
+        let taskId = null;
+        let pollingInterval = null;
+        
+        // Gestionnaires d'événements pour le drag & drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('highlight');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('highlight');
+        }
+        
+        // Gestion du dépôt de fichier
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                selectedFile = files[0];
+                updateFileInfo();
+            }
+        }
+        
+        // Gestion du clic sur la zone de dépôt
+        dropArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                selectedFile = fileInput.files[0];
+                updateFileInfo();
+            }
+        });
+        
+        function updateFileInfo() {
+            dropArea.innerHTML = `<p>Fichier sélectionné: <strong>${selectedFile.name}</strong> (${formatFileSize(selectedFile.size)})</p>`;
+            processBtn.disabled = false;
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' octets';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' Ko';
+            else return (bytes / 1048576).toFixed(2) + ' Mo';
+        }
+        
+        // Traitement du document
+        processBtn.addEventListener('click', processDocument);
+        
+        async function processDocument() {
+            if (!selectedFile) return;
+            
+            // Préparer les options
+            const options = {
+                chunk_size: parseInt(chunkSize.value) || 1000,
+                chunk_overlap: parseInt(chunkOverlap.value) || 100,
+                enable_ocr: enableOcr.checked,
+                include_text_content: false
+            };
+            
+            // Préparer les données
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('options', JSON.stringify(options));
+            
+            if (synchronousProcessing.checked) {
+                formData.append('synchronous', 'true');
+            }
+            
+            // Afficher la progression
+            progressContainer.style.display = 'block';
+            resultContainer.style.display = 'none';
+            statusMessage.textContent = 'Envoi du document...';
+            progressBar.style.width = '10%';
+            
+            try {
+                // Envoyer la requête
+                const response = await fetch(`${API_BASE_URL}/process`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${AUTH_TOKEN}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Erreur lors du traitement du document');
+                }
+                
+                if (synchronousProcessing.checked) {
+                    // Traitement synchrone
+                    progressBar.style.width = '100%';
+                    statusMessage.textContent = 'Traitement terminé !';
+                    displayResults(data);
+                } else {
+                    // Traitement asynchrone
+                    taskId = data.task_id;
+                    progressBar.style.width = '30%';
+                    statusMessage.textContent = `Traitement en cours... (ID: ${taskId})`;
+                    startPolling(taskId);
+                }
+            } catch (error) {
+                statusMessage.textContent = `Erreur: ${error.message}`;
+                statusMessage.classList.remove('alert-info');
+                statusMessage.classList.add('alert-danger');
+            }
+        }
+        
+        function startPolling(taskId) {
+            if (pollingInterval) clearInterval(pollingInterval);
+            
+            let progress = 30;
+            
+            pollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/task/${taskId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${AUTH_TOKEN}`
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    // Simuler la progression
+                    if (progress < 90) {
+                        progress += 5;
+                        progressBar.style.width = `${progress}%`;
+                    }
+                    
+                    if (data.status === 'completed') {
+                        clearInterval(pollingInterval);
+                        progressBar.style.width = '100%';
+                        statusMessage.textContent = 'Traitement terminé !';
+                        displayResults(data.result);
+                    } else if (data.status === 'failed') {
+                        clearInterval(pollingInterval);
+                        statusMessage.textContent = `Erreur: ${data.error}`;
+                        statusMessage.classList.remove('alert-info');
+                        statusMessage.classList.add('alert-danger');
+                    } else {
+                        statusMessage.textContent = `Traitement en cours... (ID: ${taskId})`;
+                    }
+                } catch (error) {
+                    console.error('Erreur lors de la vérification du statut:', error);
+                }
+            }, 1000);
+        }
+        
+        function displayResults(data) {
+            resultContainer.style.display = 'block';
+            
+            // Afficher les métadonnées
+            metadataOutput.textContent = JSON.stringify(data.metadata, null, 2);
+            
+            // Afficher les chunks
+            chunksContainer.innerHTML = '';
+            if (data.chunks && data.chunks.length > 0) {
+                chunksCount.textContent = data.chunks.length;
+                
+                data.chunks.forEach((chunk, index) => {
+                    const chunkElement = document.createElement('div');
+                    chunkElement.className = 'chunk-item';
+                    chunkElement.innerHTML = `
+                        <strong>Chunk ${index + 1}</strong> (${chunk.length} caractères)
+                        <pre>${chunk}</pre>
+                    `;
+                    chunksContainer.appendChild(chunkElement);
+                });
+            } else {
+                chunksCount.textContent = '0';
+                chunksContainer.innerHTML = '<p>Aucun chunk généré ou disponible.</p>';
+            }
+        }
+    </script>
+</body>
+</html>

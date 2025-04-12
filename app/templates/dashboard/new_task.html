@@ -1,0 +1,573 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Nouvelle tâche OCR - Tableau de Bord OCR{% endblock %}
+
+{% block page_title %}Créer une nouvelle tâche OCR{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <a href="{{ url_for('dashboard_active_tasks') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Retour aux tâches
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Formulaire de création de tâche -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-plus-circle me-1"></i>
+                Paramètres de la tâche OCR
+            </div>
+            <div class="card-body">
+                <form id="new-task-form" action="{{ url_for('dashboard_create_task') }}" method="post" enctype="multipart/form-data">
+                    <!-- Informations de base -->
+                    <div class="mb-4">
+                        <h5>Informations générales</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="task-name" class="form-label">Nom de la tâche *</label>
+                                <input type="text" class="form-control" id="task-name" name="name" placeholder="Ex: Numérisation manuel technique" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="task-priority" class="form-label">Priorité</label>
+                                <select class="form-select" id="task-priority" name="priority">
+                                    <option value="low">Basse</option>
+                                    <option value="normal" selected>Normale</option>
+                                    <option value="high">Haute</option>
+                                    <option value="urgent">Urgente</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label for="task-description" class="form-label">Description</label>
+                                <textarea class="form-control" id="task-description" name="description" rows="2" placeholder="Description optionnelle de la tâche"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sélection du document -->
+                    <div class="mb-4">
+                        <h5>Document à traiter</h5>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="document_source" id="upload-document" value="upload" checked>
+                                    <label class="form-check-label" for="upload-document">Télécharger un nouveau document</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="document_source" id="select-document" value="select">
+                                    <label class="form-check-label" for="select-document">Sélectionner un document existant</label>
+                                </div>
+                            </div>
+                            
+                            <!-- Téléchargement de document -->
+                            <div class="col-12 document-source-container" id="upload-document-container">
+                                <div class="mb-3">
+                                    <label for="document-file" class="form-label">Fichier à traiter *</label>
+                                    <input class="form-control" type="file" id="document-file" name="document_file" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif,.bmp">
+                                    <div class="form-text">Formats supportés: PDF, JPG, PNG, TIFF, BMP (max 50 Mo)</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Sélection de document existant -->
+                            <div class="col-12 document-source-container" id="select-document-container" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="document-path" class="form-label">Document existant *</label>
+                                    <select class="form-select" id="document-path" name="document_path">
+                                        <option value="">Sélectionner un document</option>
+                                        {% for doc in available_documents %}
+                                        <option value="{{ doc.path }}">{{ doc.name }} ({{ doc.size|filesizeformat }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Options OCR -->
+                    <div class="mb-4">
+                        <h5>Options OCR</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="ocr-provider" class="form-label">Fournisseur OCR *</label>
+                                <select class="form-select" id="ocr-provider" name="ocr_provider" required>
+                                    {% for provider in ocr_providers %}
+                                    <option value="{{ provider.id }}" {% if provider.default %}selected{% endif %}>{{ provider.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="language" class="form-label">Langue principale</label>
+                                <select class="form-select" id="language" name="language">
+                                    <option value="fra" selected>Français</option>
+                                    <option value="eng">Anglais</option>
+                                    <option value="deu">Allemand</option>
+                                    <option value="spa">Espagnol</option>
+                                    <option value="ita">Italien</option>
+                                    <option value="por">Portugais</option>
+                                    <option value="nld">Néerlandais</option>
+                                    <option value="ara">Arabe</option>
+                                    <option value="zho">Chinois</option>
+                                    <option value="rus">Russe</option>
+                                    <option value="jpn">Japonais</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="output-format" class="form-label">Format de sortie</label>
+                                <select class="form-select" id="output-format" name="output_format">
+                                    <option value="pdf" selected>PDF interrogeable</option>
+                                    <option value="txt">Texte brut (.txt)</option>
+                                    <option value="docx">Word (.docx)</option>
+                                    <option value="hocr">hOCR</option>
+                                    <option value="alto">ALTO XML</option>
+                                    <option value="json">JSON</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="dpi" class="form-label">Résolution (DPI)</label>
+                                <select class="form-select" id="dpi" name="dpi">
+                                    <option value="0">Auto (conserver l'original)</option>
+                                    <option value="150">150 DPI</option>
+                                    <option value="300" selected>300 DPI</option>
+                                    <option value="400">400 DPI</option>
+                                    <option value="600">600 DPI</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Options avancées -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5>Options avancées</h5>
+                            <button class="btn btn-sm btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#advanced-options">
+                                <i class="fas fa-cog me-1"></i> Afficher/Masquer
+                            </button>
+                        </div>
+                        <div class="collapse" id="advanced-options">
+                            <div class="card card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="preprocess-image" name="preprocess_image" checked>
+                                            <label class="form-check-label" for="preprocess-image">Prétraitement d'image</label>
+                                        </div>
+                                        <div class="form-text mb-3">Améliore la qualité de l'image avant OCR</div>
+                                        
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="deskew" name="deskew" checked>
+                                            <label class="form-check-label" for="deskew">Redressement automatique</label>
+                                        </div>
+                                        <div class="form-text mb-3">Corrige l'inclinaison des pages</div>
+                                        
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="process-background" name="process_background">
+                                            <label class="form-check-label" for="process-background">Traitement en arrière-plan</label>
+                                        </div>
+                                        <div class="form-text">Exécute la tâche avec une priorité réduite</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="force-ocr" name="force_ocr">
+                                            <label class="form-check-label" for="force-ocr">Forcer l'OCR</label>
+                                        </div>
+                                        <div class="form-text mb-3">Applique l'OCR même si le document contient déjà du texte</div>
+                                        
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="keep-original" name="keep_original" checked>
+                                            <label class="form-check-label" for="keep-original">Conserver l'original</label>
+                                        </div>
+                                        <div class="form-text mb-3">Garde une copie du document original</div>
+                                        
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="auto-rotate" name="auto_rotate" checked>
+                                            <label class="form-check-label" for="auto-rotate">Rotation automatique</label>
+                                        </div>
+                                        <div class="form-text">Détecte et corrige l'orientation des pages</div>
+                                    </div>
+                                    
+                                    <div class="col-12">
+                                        <label for="custom-parameters" class="form-label">Paramètres personnalisés</label>
+                                        <textarea class="form-control" id="custom-parameters" name="custom_parameters" rows="2" placeholder="Paramètres spécifiques au fournisseur OCR (format JSON)"></textarea>
+                                        <div class="form-text">Format: {"param1": "valeur1", "param2": "valeur2"}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Notification et destination -->
+                    <div class="mb-4">
+                        <h5>Notification et destination</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="notify-completion" name="notify_completion" checked>
+                                    <label class="form-check-label" for="notify-completion">Notifier à la fin du traitement</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="notify-error" name="notify_error" checked>
+                                    <label class="form-check-label" for="notify-error">Notifier en cas d'erreur</label>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <label for="output-path" class="form-label">Dossier de destination</label>
+                                <select class="form-select" id="output-path" name="output_path">
+                                    <option value="" selected>Dossier par défaut</option>
+                                    {% for folder in output_folders %}
+                                    <option value="{{ folder.path }}">{{ folder.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="reset" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i> Réinitialiser
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-play me-1"></i> Démarrer la tâche OCR
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Aide et recommandations -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-lightbulb me-1"></i>
+                Recommandations OCR
+            </div>
+            <div class="card-body">
+                <div id="recommendations-content">
+                    <h6>Conseils pour de meilleurs résultats</h6>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Utilisez des documents bien numérisés avec une résolution d'au moins 300 DPI
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Sélectionnez la langue correcte pour améliorer la précision
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Les documents en noir et blanc donnent généralement de meilleurs résultats
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Activez le prétraitement d'image pour les documents de qualité moyenne
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Utilisez le format PDF interrogeable pour conserver la mise en page originale
+                        </li>
+                    </ul>
+                    
+                    <h6>Fournisseurs OCR recommandés par type de document</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Documents techniques</strong></td>
+                                    <td>Tesseract 5.0</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Manuscrits</strong></td>
+                                    <td>ABBYY FineReader</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Factures et formulaires</strong></td>
+                                    <td>Amazon Textract</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Livres et documents anciens</strong></td>
+                                    <td>OCRmyPDF</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Aperçu du temps estimé -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-clock me-1"></i>
+                Temps de traitement estimé
+            </div>
+            <div class="card-body">
+                <div id="processing-time-estimate">
+                    <div class="text-center py-3">
+                        <i class="fas fa-file-upload fa-3x text-muted mb-3"></i>
+                        <p class="mb-0">Téléchargez un document pour voir l'estimation du temps de traitement</p>
+                    </div>
+                </div>
+                
+                <div id="processing-time-result" style="display: none;">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-file-pdf fa-2x text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0" id="document-name">document.pdf</h6>
+                            <small class="text-muted" id="document-info">10 pages, 2.5 Mo</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Temps estimé:</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-stopwatch me-2"></i> <span id="estimated-time">2-3 minutes</span></span>
+                            <span class="badge bg-info" id="estimated-priority">Priorité normale</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Position dans la file</span>
+                            <span id="queue-position">2</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Statut de la file</span>
+                            <span class="badge bg-success" id="queue-status">Disponible</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestion de la source du document (téléchargement vs sélection)
+        const uploadRadio = document.getElementById('upload-document');
+        const selectRadio = document.getElementById('select-document');
+        const uploadContainer = document.getElementById('upload-document-container');
+        const selectContainer = document.getElementById('select-document-container');
+        
+        uploadRadio.addEventListener('change', function() {
+            if (this.checked) {
+                uploadContainer.style.display = 'block';
+                selectContainer.style.display = 'none';
+                // Réinitialiser le sélecteur de document
+                document.getElementById('document-path').value = '';
+            }
+        });
+        
+        selectRadio.addEventListener('change', function() {
+            if (this.checked) {
+                uploadContainer.style.display = 'none';
+                selectContainer.style.display = 'block';
+                // Réinitialiser le téléchargement de fichier
+                document.getElementById('document-file').value = '';
+            }
+        });
+        
+        // Gestion du téléchargement de document pour l'estimation
+        const documentFileInput = document.getElementById('document-file');
+        const processingTimeEstimate = document.getElementById('processing-time-estimate');
+        const processingTimeResult = document.getElementById('processing-time-result');
+        const documentNameElement = document.getElementById('document-name');
+        const documentInfoElement = document.getElementById('document-info');
+        const estimatedTimeElement = document.getElementById('estimated-time');
+        const estimatedPriorityElement = document.getElementById('estimated-priority');
+        const queuePositionElement = document.getElementById('queue-position');
+        const queueStatusElement = document.getElementById('queue-status');
+        
+        documentFileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                
+                // Afficher les informations du document
+                documentNameElement.textContent = file.name;
+                documentInfoElement.textContent = `${estimatePageCount(file.size)} pages, ${formatFileSize(file.size)}`;
+                
+                // Calculer le temps estimé en fonction de la taille et du fournisseur OCR
+                const ocrProvider = document.getElementById('ocr-provider').value;
+                const priority = document.getElementById('task-priority').value;
+                
+                updateEstimation(file.size, ocrProvider, priority);
+                
+                // Afficher le résultat
+                processingTimeEstimate.style.display = 'none';
+                processingTimeResult.style.display = 'block';
+            }
+        });
+        
+        // Mise à jour de l'estimation lorsque le fournisseur OCR change
+        document.getElementById('ocr-provider').addEventListener('change', function() {
+            if (documentFileInput.files && documentFileInput.files[0]) {
+                const file = documentFileInput.files[0];
+                const priority = document.getElementById('task-priority').value;
+                updateEstimation(file.size, this.value, priority);
+            }
+        });
+        
+        // Mise à jour de l'estimation lorsque la priorité change
+        document.getElementById('task-priority').addEventListener('change', function() {
+            if (documentFileInput.files && documentFileInput.files[0]) {
+                const file = documentFileInput.files[0];
+                const ocrProvider = document.getElementById('ocr-provider').value;
+                updateEstimation(file.size, ocrProvider, this.value);
+            }
+        });
+        
+        // Validation du formulaire
+        const newTaskForm = document.getElementById('new-task-form');
+        
+        newTaskForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Vérifier si un document est sélectionné
+            const uploadRadioChecked = uploadRadio.checked;
+            const documentFile = documentFileInput.files[0];
+            const documentPath = document.getElementById('document-path').value;
+            
+            if (uploadRadioChecked && !documentFile) {
+                alert('Veuillez sélectionner un fichier à traiter.');
+                return;
+            }
+            
+            if (!uploadRadioChecked && !documentPath) {
+                alert('Veuillez sélectionner un document existant.');
+                return;
+            }
+            
+            // Tout est valide, soumettre le formulaire
+            this.submit();
+        });
+        
+        // Fonction pour estimer le nombre de pages en fonction de la taille du fichier
+        function estimatePageCount(size) {
+            // Estimation très approximative: 150Ko par page pour un PDF
+            return Math.max(1, Math.round(size / (150 * 1024)));
+        }
+        
+        // Fonction pour formater la taille du fichier
+        function formatFileSize(size) {
+            if (size < 1024) {
+                return size + ' o';
+            } else if (size < 1024 * 1024) {
+                return (size / 1024).toFixed(1) + ' Ko';
+            } else if (size < 1024 * 1024 * 1024) {
+                return (size / (1024 * 1024)).toFixed(1) + ' Mo';
+            } else {
+                return (size / (1024 * 1024 * 1024)).toFixed(1) + ' Go';
+            }
+        }
+        
+        // Fonction pour mettre à jour l'estimation
+        function updateEstimation(fileSize, ocrProvider, priority) {
+            // Obtenir l'état de la file d'attente
+            fetch('/api/dashboard/queue-status')
+                .then(response => response.json())
+                .then(data => {
+                    // Estimer le nombre de pages
+                    const pageCount = estimatePageCount(fileSize);
+                    
+                    // Estimer le temps de traitement en fonction du fournisseur et du nombre de pages
+                    let timePerPage;
+                    switch (ocrProvider) {
+                        case 'tesseract':
+                            timePerPage = 5; // 5 secondes par page
+                            break;
+                        case 'abbyy':
+                            timePerPage = 3; // 3 secondes par page
+                            break;
+                        case 'textract':
+                            timePerPage = 4; // 4 secondes par page
+                            break;
+                        case 'ocrmypdf':
+                            timePerPage = 6; // 6 secondes par page
+                            break;
+                        default:
+                            timePerPage = 5;
+                    }
+                    
+                    // Ajuster en fonction de la priorité
+                    let priorityMultiplier = 1;
+                    let priorityLabel = 'Priorité normale';
+                    
+                    switch (priority) {
+                        case 'low':
+                            priorityMultiplier = 1.5;
+                            priorityLabel = 'Priorité basse';
+                            break;
+                        case 'normal':
+                            priorityMultiplier = 1;
+                            priorityLabel = 'Priorité normale';
+                            break;
+                        case 'high':
+                            priorityMultiplier = 0.8;
+                            priorityLabel = 'Priorité haute';
+                            break;
+                        case 'urgent':
+                            priorityMultiplier = 0.5;
+                            priorityLabel = 'Priorité urgente';
+                            break;
+                    }
+                    
+                    // Calcul du temps total estimé en secondes
+                    const estimatedSeconds = timePerPage * pageCount * priorityMultiplier;
+                    
+                    // Formater le temps estimé
+                    let estimatedTime;
+                    if (estimatedSeconds < 60) {
+                        estimatedTime = `${Math.ceil(estimatedSeconds)} secondes`;
+                    } else if (estimatedSeconds < 3600) {
+                        const minutes = Math.ceil(estimatedSeconds / 60);
+                        estimatedTime = `${minutes} minute${minutes > 1 ? 's' : ''}`;
+                    } else {
+                        const hours = Math.floor(estimatedSeconds / 3600);
+                        const minutes = Math.ceil((estimatedSeconds % 3600) / 60);
+                        estimatedTime = `${hours} heure${hours > 1 ? 's' : ''} ${minutes} minute${minutes > 1 ? 's' : ''}`;
+                    }
+                    
+                    // Mise à jour des éléments d'interface
+                    estimatedTimeElement.textContent = estimatedTime;
+                    estimatedPriorityElement.textContent = priorityLabel;
+                    
+                    // Mise à jour de la position dans la file et de son statut
+                    queuePositionElement.textContent = data.active_tasks;
+                    
+                    if (data.queue_status === 'available') {
+                        queueStatusElement.textContent = 'Disponible';
+                        queueStatusElement.className = 'badge bg-success';
+                    } else if (data.queue_status === 'busy') {
+                        queueStatusElement.textContent = 'Occupée';
+                        queueStatusElement.className = 'badge bg-warning';
+                    } else {
+                        queueStatusElement.textContent = 'Saturée';
+                        queueStatusElement.className = 'badge bg-danger';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la récupération de l\'état de la file:', error);
+                    
+                    // Valeurs par défaut en cas d'erreur
+                    const pageCount = estimatePageCount(fileSize);
+                    const estimatedTime = `${Math.ceil(pageCount * 5 / 60)} minute(s)`;
+                    
+                    estimatedTimeElement.textContent = estimatedTime;
+                    queuePositionElement.textContent = 'N/A';
+                    queueStatusElement.textContent = 'Inconnu';
+                    queueStatusElement.className = 'badge bg-secondary';
+                });
+        }
+    });
+</script>
+{% endblock %}

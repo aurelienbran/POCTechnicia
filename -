@@ -1,0 +1,94 @@
+D:\Projets\POC TECHNICIA\app\api\v1\router.py:1:1: F401 'fastapi.Body' imported but unused
+D:\Projets\POC TECHNICIA\app\api\v1\router.py:3:1: F401 'typing.Any' imported but unused
+D:\Projets\POC TECHNICIA\app\api\v1\router.py:8:1: F401 'shutil' imported but unused
+D:\Projets\POC TECHNICIA\app\api\v1\router.py:11:1: F401 'psutil' imported but unused
+D:\Projets\POC TECHNICIA\app\api\v1\router.py:15:1: F401 'threading' imported but unused
+D:\Projets\POC TECHNICIA\app\api\v1\router.py:88:1: F401 'app.schemas.ErrorResponse' imported but unused
+D:\Projets\POC TECHNICIA\app\api\v1\router.py:104:1: F401 '.diagnostic_router.router as diagnostic_router' imported but unused
+D:\Projets\POC TECHNICIA\app\api\v1\router.py:355:13: F841 local variable 'ocr_tracker' is assigned to but never used
+D:\Projets\POC TECHNICIA\app\api\v1\router.py:360:17: F841 local variable 'callbacks' is assigned to but never used
+D:\Projets\POC TECHNICIA\app\api\v1\router.py:780:5: F841 local variable 'e' is assigned to but never used
+D:\Projets\POC TECHNICIA\app\api\v1\router.py:1172:9: F841 local variable 'rag_engine' is assigned to but never used
+D:\Projets\POC TECHNICIA\app\api\websocket\ocr_socket.py:7:1: F401 'typing.Callable' imported but unused
+D:\Projets\POC TECHNICIA\app\api\websocket\ocr_socket.py:9:1: F401 'datetime.datetime' imported but unused
+D:\Projets\POC TECHNICIA\app\core\formatters\technical_response_formatter.py:1:1: F401 'typing.Any' imported but unused
+D:\Projets\POC TECHNICIA\app\core\llm_interface.py:6:1: F401 'numpy as np' imported but unused
+D:\Projets\POC TECHNICIA\app\core\llm_interface.py:30:1: F401 'json' imported but unused
+D:\Projets\POC TECHNICIA\app\core\models.py:3:1: F401 'typing.List' imported but unused
+D:\Projets\POC TECHNICIA\app\core\models.py:3:1: F401 'typing.Any' imported but unused
+D:\Projets\POC TECHNICIA\app\core\ocr_helper.py:2:1: F401 'subprocess' imported but unused
+D:\Projets\POC TECHNICIA\app\core\ocr_helper.py:8:1: F401 'asyncio' imported but unused
+D:\Projets\POC TECHNICIA\app\core\ocr_helper.py:11:1: F401 'sys' imported but unused
+D:\Projets\POC TECHNICIA\app\core\ocr_helper.py:251:51: F841 local variable 'output_capture' is assigned to but never used
+D:\Projets\POC TECHNICIA\app\core\ocr_logger.py:10:1: F401 'typing.Dict' imported but unused
+D:\Projets\POC TECHNICIA\app\core\ocr_logger.py:10:1: F401 'typing.Any' imported but unused
+D:\Projets\POC TECHNICIA\app\core\ocr_logger.py:10:1: F401 'typing.Optional' imported but unused
+D:\Projets\POC TECHNICIA\app\core\ocr_logger.py:10:1: F401 'typing.Callable' imported but unused
+D:\Projets\POC TECHNICIA\app\core\ocr_logger.py:10:1: F401 'typing.List' imported but unused
+D:\Projets\POC TECHNICIA\app\core\ocr_logger.py:13:5: F401 'fitz' imported but unused
+D:\Projets\POC TECHNICIA\app\core\ocr_logger.py:265:17: F841 local variable 'total_pages' is assigned to but never used
+D:\Projets\POC TECHNICIA\app\core\pdf_processor.py:4:1: F401 'asyncio' imported but unused
+D:\Projets\POC TECHNICIA\app\core\pdf_processor.py:12:1: F401 'subprocess' imported but unused
+D:\Projets\POC TECHNICIA\app\core\pdf_processor.py:13:1: F401 'numpy as np' imported but unused
+D:\Projets\POC TECHNICIA\app\core\pdf_processor.py:14:1: F401 'PIL.Image' imported but unused
+D:\Projets\POC TECHNICIA\app\core\pdf_processor.py:600:21: F841 local variable 'result' is assigned to but never used
+D:\Projets\POC TECHNICIA\app\core\proxy_middleware.py:3:1: F401 'fastapi.Request' imported but unused
+D:\Projets\POC TECHNICIA\app\core\proxy_middleware.py:4:1: F401 'starlette.background.BackgroundTask' imported but unused
+D:\Projets\POC TECHNICIA\app\core\proxy_middleware.py:5:1: F401 'starlette.responses.StreamingResponse' imported but unused
+D:\Projets\POC TECHNICIA\app\core\rag_engine.py:1:1: F401 'typing.Tuple' imported but unused
+D:\Projets\POC TECHNICIA\app\core\rag_engine.py:8:1: F401 'asyncio' imported but unused
+D:\Projets\POC TECHNICIA\app\core\vector_store.py:7:1: F401 'qdrant_client.http.models as rest' imported but unused
+D:\Projets\POC TECHNICIA\app\core\vector_store.py:8:1: F401 'qdrant_client.http.models.Distance' imported but unused
+D:\Projets\POC TECHNICIA\app\core\vector_store.py:8:1: F401 'qdrant_client.http.models.VectorParams' imported but unused
+D:\Projets\POC TECHNICIA\app\core\vector_store.py:13:1: F401 'os' imported but unused
+D:\Projets\POC TECHNICIA\app\diagnostics\pdf_analyzer.py:3:1: F401 'typing.List' imported but unused
+D:\Projets\POC TECHNICIA\app\diagnostics\pdf_analyzer.py:6:1: F401 '..core.vector_store.VectorStore' imported but unused
+D:\Projets\POC TECHNICIA\app\diagnostics\response_analyzer.py:2:1: F401 'typing.List' imported but unused
+D:\Projets\POC TECHNICIA\app\diagnostics\search_analyzer.py:2:1: F401 'typing.List' imported but unused
+D:\Projets\POC TECHNICIA\app\main.py:17:1: F401 'qdrant_client.QdrantClient' imported but unused
+D:\Projets\POC TECHNICIA\app\main.py:43:1: F401 'fastapi.middleware.trustedhost.TrustedHostMiddleware' imported but unused
+42    F401 'fastapi.Body' imported but unused
+7     F841 local variable 'ocr_tracker' is assigned to but never used
+D:\Projets\POC TECHNICIA\scripts\analyse_code_mort.py:14:1: F401 'json' imported but unused
+D:\Projets\POC TECHNICIA\scripts\analyse_code_mort.py:209:5: F841 local variable 'report_path' is assigned to but never used
+D:\Projets\POC TECHNICIA\scripts\test_ocr.py:7:1: F401 'time' imported but unused
+D:\Projets\POC TECHNICIA\scripts\tools\diagnostic_tool.py:19:1: F401 'uvicorn' imported but unused
+D:\Projets\POC TECHNICIA\scripts\tools\diagnostic_tool.py:49:13: F841 local variable 'process' is assigned to but never used
+D:\Projets\POC TECHNICIA\scripts\tools\upload_file.py:4:1: F401 'time' imported but unused
+D:\Projets\POC TECHNICIA\scripts\tools\verify_index.py:3:1: F401 'pathlib.Path' imported but unused
+D:\Projets\POC TECHNICIA\scripts\tools\verify_index.py:9:1: F401 'pandas as pd' imported but unused
+D:\Projets\POC TECHNICIA\scripts\tools\verify_index.py:10:1: F401 'typing.List' imported but unused
+7     F401 'json' imported but unused
+2     F841 local variable 'report_path' is assigned to but never used
+D:\Projets\POC TECHNICIA\tests\conftest.py:9:1: F401 'typing.AsyncGenerator' imported but unused
+D:\Projets\POC TECHNICIA\tests\conftest.py:9:1: F401 'typing.Dict' imported but unused
+D:\Projets\POC TECHNICIA\tests\conftest.py:9:1: F401 'typing.Any' imported but unused
+D:\Projets\POC TECHNICIA\tests\conftest.py:36:1: F401 'app.core.rag_engine.RAGEngine' imported but unused
+D:\Projets\POC TECHNICIA\tests\performance\test_performance.py:7:1: F401 'json' imported but unused
+D:\Projets\POC TECHNICIA\tests\performance\test_performance.py:12:1: F401 'typing.List' imported but unused
+D:\Projets\POC TECHNICIA\tests\performance\test_performance.py:12:1: F401 'typing.Dict' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_api.py:3:1: F401 'fastapi.testclient.TestClient' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_api.py:5:1: F401 'unittest.mock.patch' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_api.py:5:1: F401 'unittest.mock.MagicMock' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_api.py:5:1: F401 'unittest.mock.AsyncMock' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_api.py:6:1: F401 'pathlib.Path' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_api.py:7:1: F401 'json' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_api.py:8:1: F401 'datetime.datetime' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_api.py:12:1: F401 'app.core.rag_engine.RAGEngine' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_diagnostics.py:3:1: F401 'pathlib.Path' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_diagnostics.py:8:1: F401 'app.core.vector_store.VectorStore' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_diagnostics.py:9:1: F401 'app.core.llm_interface.LLMInterface' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_diagnostics.py:10:1: F401 'app.core.rag_engine.RAGEngine' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_hybrid_prompt.py:3:1: F401 'asyncio' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_hybrid_prompt.py:7:1: F401 'numpy as np' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_hybrid_prompt.py:8:1: F401 'unittest.mock.AsyncMock' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_llm_interface.py:4:1: F401 'anthropic' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_pdf_processor.py:7:1: F401 'os' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_pdf_processor.py:8:1: F401 'datetime.datetime' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_rag_engine.py:5:1: F401 'asyncio' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_rag_engine.py:6:1: F401 'typing.AsyncGenerator' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_rag_engine.py:6:1: F401 'typing.List' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_vector_store.py:4:1: F401 'unittest.mock.PropertyMock' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_vector_store.py:6:1: F401 'qdrant_client.models.VectorParams' imported but unused
+D:\Projets\POC TECHNICIA\tests\test_vector_store.py:6:1: F401 'qdrant_client.models.PointStruct' imported but unused
+31    F401 'typing.AsyncGenerator' imported but unused

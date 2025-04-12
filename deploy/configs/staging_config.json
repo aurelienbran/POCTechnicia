@@ -1,0 +1,566 @@
+{
+  "general": {
+    "applicationName": "Technicia OCR System",
+    "version": "1.0.0",
+    "environment": "staging",
+    "logPath": "${basePath}\\logs",
+    "tempPath": "${basePath}\\temp",
+    "dataPath": "${basePath}\\data"
+  },
+  
+  "serverSpecs": {
+    "minCores": 4,
+    "minMemoryGB": 8,
+    "minDiskSpaceGB": 50,
+    "supportedOS": [
+      "Windows Server 2019",
+      "Windows Server 2022",
+      "Windows 10",
+      "Windows 11"
+    ],
+    "checkWindowsFeatures": true,
+    "requiredWindowsFeatures": [
+      "IIS-WebServerRole",
+      "IIS-WebServer",
+      "IIS-CommonHttpFeatures",
+      "IIS-ManagementConsole",
+      "IIS-WebSockets",
+      "IIS-ApplicationDevelopment",
+      "NetFx4Extended-ASPNET45",
+      "IIS-NetFxExtensibility45",
+      "IIS-ASPNET45"
+    ]
+  },
+  
+  "software": {
+    "requiredSoftware": [
+      {
+        "name": "Docker Desktop",
+        "minVersion": "4.18.0",
+        "executable": "docker",
+        "critical": true,
+        "startAfterInstall": true,
+        "downloadUrl": "https://desktop.docker.com/win/stable/Docker%20Desktop%20Installer.exe",
+        "installArgs": "--quiet"
+      },
+      {
+        "name": "PostgreSQL",
+        "minVersion": "15.3",
+        "executable": "psql",
+        "critical": true,
+        "createDatabase": true,
+        "dbName": "ocr_db_staging",
+        "dbUser": "technicia",
+        "dbPassword": "technicia_staging_pwd",
+        "port": "5432",
+        "downloadUrl": "https://get.enterprisedb.com/postgresql/postgresql-15.3-1-windows-x64.exe"
+      },
+      {
+        "name": "Python",
+        "minVersion": "3.10.0",
+        "executable": "python",
+        "critical": true,
+        "installDir": "C:\\Python310",
+        "downloadUrl": "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe"
+      },
+      {
+        "name": "Redis",
+        "minVersion": "7.0.0",
+        "executable": "redis-server",
+        "critical": true,
+        "port": "6379",
+        "downloadUrl": "https://github.com/tporadowski/redis/releases/download/v5.0.14.1/Redis-x64-5.0.14.1.msi"
+      },
+      {
+        "name": "Nginx",
+        "minVersion": "1.22.0",
+        "executable": "nginx",
+        "critical": true,
+        "downloadUrl": "http://nginx.org/download/nginx-1.22.0.zip"
+      },
+      {
+        "name": "Tesseract OCR",
+        "minVersion": "5.3.0",
+        "executable": "tesseract",
+        "critical": true,
+        "downloadUrl": "https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.3.0.20221222.exe"
+      },
+      {
+        "name": "Git",
+        "minVersion": "2.40.0",
+        "executable": "git",
+        "critical": false,
+        "downloadUrl": "https://github.com/git-for-windows/git/releases/download/v2.40.0.windows.1/Git-2.40.0-64-bit.exe"
+      },
+      {
+        "name": "NodeJS",
+        "minVersion": "18.0.0",
+        "executable": "node",
+        "critical": true,
+        "downloadUrl": "https://nodejs.org/dist/v18.16.0/node-v18.16.0-x64.msi"
+      },
+      {
+        "name": "Prometheus",
+        "minVersion": "2.44.0",
+        "executable": "prometheus",
+        "critical": false,
+        "downloadUrl": "https://github.com/prometheus/prometheus/releases/download/v2.44.0/prometheus-2.44.0.windows-amd64.zip"
+      },
+      {
+        "name": "Grafana",
+        "minVersion": "9.5.1",
+        "executable": "grafana-server",
+        "critical": false,
+        "downloadUrl": "https://dl.grafana.com/enterprise/release/grafana-enterprise-9.5.1.windows-amd64.zip"
+      }
+    ],
+    
+    "pythonPackages": [
+      {
+        "name": "fastapi",
+        "version": "0.95.0"
+      },
+      {
+        "name": "uvicorn",
+        "version": "0.21.1"
+      },
+      {
+        "name": "sqlalchemy",
+        "version": "2.0.9"
+      },
+      {
+        "name": "psycopg2-binary",
+        "version": "2.9.6"
+      },
+      {
+        "name": "python-multipart",
+        "version": "0.0.6"
+      },
+      {
+        "name": "pillow",
+        "version": "9.5.0"
+      },
+      {
+        "name": "pytesseract",
+        "version": "0.3.10"
+      },
+      {
+        "name": "redis",
+        "version": "4.5.4"
+      },
+      {
+        "name": "celery",
+        "version": "5.2.7"
+      },
+      {
+        "name": "pytest",
+        "version": "7.3.1"
+      },
+      {
+        "name": "python-jose[cryptography]",
+        "version": "3.3.0"
+      },
+      {
+        "name": "passlib[bcrypt]",
+        "version": "1.7.4"
+      }
+    ],
+    
+    "nodePackages": [
+      {
+        "name": "express",
+        "version": "4.18.2"
+      },
+      {
+        "name": "react",
+        "version": "18.2.0"
+      },
+      {
+        "name": "axios",
+        "version": "1.3.5"
+      },
+      {
+        "name": "cors",
+        "version": "2.8.5"
+      }
+    ]
+  },
+  
+  "network": {
+    "requiredPorts": [
+      {
+        "port": 80,
+        "protocol": "tcp",
+        "application": "HTTP",
+        "critical": true,
+        "forceRelease": true
+      },
+      {
+        "port": 443,
+        "protocol": "tcp",
+        "application": "HTTPS",
+        "critical": true,
+        "forceRelease": true
+      },
+      {
+        "port": 5432,
+        "protocol": "tcp",
+        "application": "PostgreSQL",
+        "critical": true,
+        "forceRelease": false
+      },
+      {
+        "port": 6379,
+        "protocol": "tcp",
+        "application": "Redis",
+        "critical": true,
+        "forceRelease": false
+      },
+      {
+        "port": 8000,
+        "protocol": "tcp",
+        "application": "FastAPI",
+        "critical": true,
+        "forceRelease": true
+      },
+      {
+        "port": 3000,
+        "protocol": "tcp",
+        "application": "React Frontend",
+        "critical": true,
+        "forceRelease": true
+      },
+      {
+        "port": 9090,
+        "protocol": "tcp",
+        "application": "Prometheus",
+        "critical": false,
+        "forceRelease": true
+      },
+      {
+        "port": 3001,
+        "protocol": "tcp",
+        "application": "Grafana",
+        "critical": false,
+        "forceRelease": true
+      }
+    ],
+    
+    "reverseProxy": true,
+    "proxyConfig": {
+      "servers": [
+        {
+          "name": "Frontend",
+          "port": 80,
+          "serverName": "technicia-staging.local",
+          "locations": [
+            {
+              "path": "/",
+              "proxyPass": "http://localhost:3000"
+            },
+            {
+              "path": "/api",
+              "proxyPass": "http://localhost:8000"
+            }
+          ]
+        },
+        {
+          "name": "Frontend HTTPS",
+          "port": 443,
+          "serverName": "technicia-staging.local",
+          "locations": [
+            {
+              "path": "/",
+              "proxyPass": "http://localhost:3000"
+            },
+            {
+              "path": "/api",
+              "proxyPass": "http://localhost:8000"
+            }
+          ]
+        },
+        {
+          "name": "Monitoring",
+          "port": 8080,
+          "serverName": "monitoring.technicia-staging.local",
+          "locations": [
+            {
+              "path": "/prometheus",
+              "proxyPass": "http://localhost:9090"
+            },
+            {
+              "path": "/grafana",
+              "proxyPass": "http://localhost:3001"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  
+  "security": {
+    "ssl": {
+      "generateSelfSigned": true,
+      "domainName": "technicia-staging.local",
+      "certificatePath": "${basePath}\\certificates",
+      "certificateName": "technicia-staging",
+      "certificatePassword": "Technicia2024!",
+      "configureApplications": true,
+      "applications": [
+        {
+          "name": "Nginx",
+          "type": "nginx",
+          "path": "C:\\nginx"
+        },
+        {
+          "name": "FastAPI",
+          "type": "fastapi",
+          "path": "${basePath}\\src\\backend"
+        }
+      ]
+    },
+    
+    "authentication": {
+      "enabled": true,
+      "method": "jwt",
+      "secretKey": "technicia_staging_secret_key_2024",
+      "tokenExpiration": 86400,
+      "users": [
+        {
+          "username": "admin",
+          "password": "Admin2024!",
+          "role": "admin"
+        },
+        {
+          "username": "tester",
+          "password": "Tester2024!",
+          "role": "tester"
+        },
+        {
+          "username": "user",
+          "password": "User2024!",
+          "role": "user"
+        }
+      ]
+    },
+    
+    "authorizationRules": [
+      {
+        "role": "admin",
+        "permissions": ["read", "write", "delete", "admin"]
+      },
+      {
+        "role": "tester",
+        "permissions": ["read", "write", "test"]
+      },
+      {
+        "role": "user",
+        "permissions": ["read", "write"]
+      }
+    ],
+    
+    "firewallRules": {
+      "enabled": true,
+      "allowedIPs": ["127.0.0.1", "192.168.1.0/24", "10.0.0.0/8"],
+      "allowedCountries": ["FR", "BE", "LU", "DE", "CH"]
+    }
+  },
+  
+  "data": {
+    "directories": [
+      {
+        "path": "${basePath}\\data\\uploads",
+        "cleanOnInit": true,
+        "permissions": [
+          {
+            "identity": "SYSTEM",
+            "rights": "FullControl"
+          },
+          {
+            "identity": "Administrators",
+            "rights": "FullControl"
+          }
+        ]
+      },
+      {
+        "path": "${basePath}\\data\\processed",
+        "cleanOnInit": true,
+        "permissions": [
+          {
+            "identity": "SYSTEM",
+            "rights": "FullControl"
+          },
+          {
+            "identity": "Administrators",
+            "rights": "FullControl"
+          }
+        ]
+      },
+      {
+        "path": "${basePath}\\data\\exports",
+        "cleanOnInit": true,
+        "permissions": [
+          {
+            "identity": "SYSTEM",
+            "rights": "FullControl"
+          },
+          {
+            "identity": "Administrators",
+            "rights": "FullControl"
+          }
+        ]
+      },
+      {
+        "path": "${basePath}\\logs",
+        "cleanOnInit": false,
+        "permissions": [
+          {
+            "identity": "SYSTEM",
+            "rights": "FullControl"
+          },
+          {
+            "identity": "Administrators",
+            "rights": "FullControl"
+          }
+        ]
+      }
+    ],
+    
+    "databases": [
+      {
+        "type": "postgresql",
+        "name": "ocr_db_staging",
+        "primary": true,
+        "host": "localhost",
+        "port": 5432,
+        "adminUser": "postgres",
+        "adminPassword": "postgres",
+        "appUser": "technicia",
+        "appPassword": "technicia_staging_pwd",
+        "dropIfExists": false,
+        "initScript": "${basePath}\\deploy\\scripts\\sql\\init_db.sql",
+        "migrations": [
+          {
+            "path": "${basePath}\\deploy\\scripts\\sql\\migrations\\001_initial_schema.sql"
+          },
+          {
+            "path": "${basePath}\\deploy\\scripts\\sql\\migrations\\002_add_ocr_tables.sql"
+          }
+        ]
+      },
+      {
+        "type": "redis",
+        "name": "ocr_cache",
+        "host": "localhost",
+        "port": 6379,
+        "password": "",
+        "database": 0,
+        "purpose": "cache"
+      }
+    ],
+    
+    "testData": {
+      "enabled": true,
+      "users": [
+        {
+          "username": "test_admin",
+          "password": "TestAdmin2024!",
+          "role": "admin"
+        },
+        {
+          "username": "test_user",
+          "password": "TestUser2024!",
+          "role": "user"
+        }
+      ],
+      "documents": [
+        {
+          "name": "test_invoice.pdf",
+          "source": "${basePath}\\deploy\\test_data\\documents\\test_invoice.pdf",
+          "destination": "${basePath}\\data\\uploads\\test_invoice.pdf"
+        },
+        {
+          "name": "test_receipt.jpg",
+          "source": "${basePath}\\deploy\\test_data\\documents\\test_receipt.jpg",
+          "destination": "${basePath}\\data\\uploads\\test_receipt.jpg"
+        }
+      ],
+      "configurations": [
+        {
+          "name": "default_ocr_config",
+          "description": "Configuration OCR par défaut pour les tests",
+          "parameters": {
+            "language": "fra",
+            "dpi": 300,
+            "psm": 3,
+            "oem": 3
+          }
+        }
+      ],
+      "ocrData": {
+        "enabled": true,
+        "sampleDocumentsPath": "${basePath}\\deploy\\test_data\\documents",
+        "expectedResultsPath": "${basePath}\\deploy\\test_data\\expected_results",
+        "languages": ["fra", "eng", "deu"]
+      }
+    },
+    
+    "validation": {
+      "enabled": true,
+      "checkDirectories": true,
+      "checkPermissions": true,
+      "checkDatabases": true,
+      "checkTestData": true
+    },
+    
+    "migrationEnabled": false,
+    "migrationSource": ""
+  },
+  
+  "deployment": {
+    "containerization": {
+      "enabled": true,
+      "dockerComposePath": "${basePath}\\deploy\\docker-compose.yml",
+      "buildImages": true,
+      "dockerfilePath": "${basePath}\\deploy\\Dockerfile"
+    },
+    
+    "autoStart": {
+      "enabled": true,
+      "services": [
+        {
+          "name": "Technicia OCR API",
+          "command": "python -m uvicorn main:app --host 0.0.0.0 --port 8000",
+          "workingDirectory": "${basePath}\\src\\backend"
+        },
+        {
+          "name": "Technicia OCR Frontend",
+          "command": "npm start",
+          "workingDirectory": "${basePath}\\src\\frontend"
+        },
+        {
+          "name": "Technicia OCR Worker",
+          "command": "celery -A worker worker --loglevel=info",
+          "workingDirectory": "${basePath}\\src\\backend"
+        }
+      ]
+    },
+    
+    "monitoring": {
+      "enabled": true,
+      "prometheusConfigPath": "${basePath}\\deploy\\configs\\prometheus.yml",
+      "grafanaDashboardsPath": "${basePath}\\deploy\\configs\\grafana\\dashboards"
+    }
+  },
+  
+  "testing": {
+    "enabled": true,
+    "unitTestsPath": "${basePath}\\src\\tests\\unit",
+    "integrationTestsPath": "${basePath}\\src\\tests\\integration",
+    "e2eTestsPath": "${basePath}\\src\\tests\\e2e",
+    "performanceTestsPath": "${basePath}\\src\\tests\\performance",
+    "testReportsPath": "${basePath}\\reports\\test_results",
+    "executeTestsAfterDeployment": true,
+    "maxAcceptableResponseTimeMs": 1000
+  }
+}

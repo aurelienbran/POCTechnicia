@@ -1,0 +1,441 @@
+{
+  "start_time": "2025-04-02T15:40:48.321108",
+  "project_root": "D:\\Projets\\POC TECHNICIA",
+  "output_dir": "D:\\Projets\\POC TECHNICIA\\optimization_results\\20250402_154048",
+  "auto_apply": true,
+  "threshold_level": "high",
+  "steps": {
+    "benchmarks": {
+      "success": true,
+      "directory": "D:\\Projets\\POC TECHNICIA\\optimization_results\\20250402_154048\\benchmarks"
+    },
+    "analysis": {
+      "success": true,
+      "bottlenecks_count": 18
+    },
+    "optimizations": {
+      "total_count": 36,
+      "automated_count": 12,
+      "manual_count": 24
+    },
+    "application": {
+      "successful_count": 6,
+      "failed_count": 0,
+      "results": [
+        {
+          "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\orchestration.py",
+          "success": true,
+          "optimizations_count": 2,
+          "applied_count": 1,
+          "details": {
+            "success": true,
+            "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\orchestration.py",
+            "applied_optimizations": [
+              {
+                "id": 1,
+                "description": "Utiliser du caching pour éviter les calculs répétés",
+                "successful": false,
+                "error": "Contexte de code incompatible avec l'optimisation automatique"
+              },
+              {
+                "id": 2,
+                "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+                "successful": true,
+                "line": 78
+              }
+            ],
+            "total_optimizations": 2,
+            "successful_optimizations": 1
+          }
+        },
+        {
+          "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\chunking.py",
+          "success": true,
+          "optimizations_count": 2,
+          "applied_count": 2,
+          "details": {
+            "success": true,
+            "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\chunking.py",
+            "applied_optimizations": [
+              {
+                "id": 1,
+                "description": "Utiliser du caching pour éviter les calculs répétés",
+                "successful": true,
+                "line": 42
+              },
+              {
+                "id": 2,
+                "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+                "successful": true,
+                "line": 78
+              }
+            ],
+            "total_optimizations": 2,
+            "successful_optimizations": 2
+          }
+        },
+        {
+          "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\validation.py",
+          "success": true,
+          "optimizations_count": 2,
+          "applied_count": 1,
+          "details": {
+            "success": true,
+            "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\validation.py",
+            "applied_optimizations": [
+              {
+                "id": 1,
+                "description": "Utiliser du caching pour éviter les calculs répétés",
+                "successful": true,
+                "line": 42
+              },
+              {
+                "id": 2,
+                "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+                "successful": false,
+                "error": "Contexte de code incompatible avec l'optimisation automatique"
+              }
+            ],
+            "total_optimizations": 2,
+            "successful_optimizations": 1
+          }
+        },
+        {
+          "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\table_extractor.py",
+          "success": true,
+          "optimizations_count": 2,
+          "applied_count": 2,
+          "details": {
+            "success": true,
+            "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\table_extractor.py",
+            "applied_optimizations": [
+              {
+                "id": 1,
+                "description": "Utiliser du caching pour éviter les calculs répétés",
+                "successful": true,
+                "line": 42
+              },
+              {
+                "id": 2,
+                "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+                "successful": true,
+                "line": 78
+              }
+            ],
+            "total_optimizations": 2,
+            "successful_optimizations": 2
+          }
+        },
+        {
+          "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\schema_analyzer.py",
+          "success": true,
+          "optimizations_count": 2,
+          "applied_count": 2,
+          "details": {
+            "success": true,
+            "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\schema_analyzer.py",
+            "applied_optimizations": [
+              {
+                "id": 1,
+                "description": "Utiliser du caching pour éviter les calculs répétés",
+                "successful": true,
+                "line": 42
+              },
+              {
+                "id": 2,
+                "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+                "successful": true,
+                "line": 78
+              }
+            ],
+            "total_optimizations": 2,
+            "successful_optimizations": 2
+          }
+        },
+        {
+          "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\formula_processor.py",
+          "success": true,
+          "optimizations_count": 2,
+          "applied_count": 2,
+          "details": {
+            "success": true,
+            "file": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\formula_processor.py",
+            "applied_optimizations": [
+              {
+                "id": 1,
+                "description": "Utiliser du caching pour éviter les calculs répétés",
+                "successful": true,
+                "line": 42
+              },
+              {
+                "id": 2,
+                "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+                "successful": true,
+                "line": 78
+              }
+            ],
+            "total_optimizations": 2,
+            "successful_optimizations": 2
+          }
+        }
+      ]
+    }
+  },
+  "analysis_summary": {
+    "bottlenecks_count": 18,
+    "components_analyzed": [
+      "formula_processor",
+      "validation",
+      "schema_analyzer",
+      "orchestration",
+      "table_extractor",
+      "chunking"
+    ],
+    "recommendations": {
+      "critical": [
+        {
+          "component": "orchestration",
+          "metric": "duration",
+          "description": "Optimiser les boucles imbriquées en réduisant la complexité algorithmique",
+          "automated": false
+        },
+        {
+          "component": "orchestration",
+          "metric": "duration",
+          "description": "Utiliser du caching pour éviter les calculs répétés",
+          "automated": true
+        },
+        {
+          "component": "orchestration",
+          "metric": "memory_usage",
+          "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+          "automated": true
+        },
+        {
+          "component": "orchestration",
+          "metric": "memory_usage",
+          "description": "Implémenter une stratégie de chargement paresseux (lazy loading)",
+          "automated": false
+        },
+        {
+          "component": "orchestration",
+          "metric": "cpu_usage",
+          "description": "Utiliser des bibliothèques optimisées comme NumPy pour les opérations intensives",
+          "automated": false
+        },
+        {
+          "component": "orchestration",
+          "metric": "cpu_usage",
+          "description": "Considérer l'utilisation du multiprocessing pour les tâches parallélisables",
+          "automated": false
+        },
+        {
+          "component": "chunking",
+          "metric": "duration",
+          "description": "Optimiser les boucles imbriquées en réduisant la complexité algorithmique",
+          "automated": false
+        },
+        {
+          "component": "chunking",
+          "metric": "duration",
+          "description": "Utiliser du caching pour éviter les calculs répétés",
+          "automated": true
+        },
+        {
+          "component": "chunking",
+          "metric": "memory_usage",
+          "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+          "automated": true
+        },
+        {
+          "component": "chunking",
+          "metric": "memory_usage",
+          "description": "Implémenter une stratégie de chargement paresseux (lazy loading)",
+          "automated": false
+        },
+        {
+          "component": "validation",
+          "metric": "duration",
+          "description": "Optimiser les boucles imbriquées en réduisant la complexité algorithmique",
+          "automated": false
+        },
+        {
+          "component": "validation",
+          "metric": "duration",
+          "description": "Utiliser du caching pour éviter les calculs répétés",
+          "automated": true
+        },
+        {
+          "component": "validation",
+          "metric": "memory_usage",
+          "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+          "automated": true
+        },
+        {
+          "component": "validation",
+          "metric": "memory_usage",
+          "description": "Implémenter une stratégie de chargement paresseux (lazy loading)",
+          "automated": false
+        },
+        {
+          "component": "validation",
+          "metric": "cpu_usage",
+          "description": "Utiliser des bibliothèques optimisées comme NumPy pour les opérations intensives",
+          "automated": false
+        },
+        {
+          "component": "validation",
+          "metric": "cpu_usage",
+          "description": "Considérer l'utilisation du multiprocessing pour les tâches parallélisables",
+          "automated": false
+        },
+        {
+          "component": "table_extractor",
+          "metric": "duration",
+          "description": "Optimiser les boucles imbriquées en réduisant la complexité algorithmique",
+          "automated": false
+        },
+        {
+          "component": "table_extractor",
+          "metric": "duration",
+          "description": "Utiliser du caching pour éviter les calculs répétés",
+          "automated": true
+        },
+        {
+          "component": "table_extractor",
+          "metric": "memory_usage",
+          "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+          "automated": true
+        },
+        {
+          "component": "table_extractor",
+          "metric": "memory_usage",
+          "description": "Implémenter une stratégie de chargement paresseux (lazy loading)",
+          "automated": false
+        },
+        {
+          "component": "schema_analyzer",
+          "metric": "duration",
+          "description": "Optimiser les boucles imbriquées en réduisant la complexité algorithmique",
+          "automated": false
+        },
+        {
+          "component": "schema_analyzer",
+          "metric": "duration",
+          "description": "Utiliser du caching pour éviter les calculs répétés",
+          "automated": true
+        },
+        {
+          "component": "schema_analyzer",
+          "metric": "memory_usage",
+          "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+          "automated": true
+        },
+        {
+          "component": "schema_analyzer",
+          "metric": "memory_usage",
+          "description": "Implémenter une stratégie de chargement paresseux (lazy loading)",
+          "automated": false
+        },
+        {
+          "component": "schema_analyzer",
+          "metric": "cpu_usage",
+          "description": "Utiliser des bibliothèques optimisées comme NumPy pour les opérations intensives",
+          "automated": false
+        },
+        {
+          "component": "schema_analyzer",
+          "metric": "cpu_usage",
+          "description": "Considérer l'utilisation du multiprocessing pour les tâches parallélisables",
+          "automated": false
+        },
+        {
+          "component": "formula_processor",
+          "metric": "duration",
+          "description": "Optimiser les boucles imbriquées en réduisant la complexité algorithmique",
+          "automated": false
+        },
+        {
+          "component": "formula_processor",
+          "metric": "duration",
+          "description": "Utiliser du caching pour éviter les calculs répétés",
+          "automated": true
+        },
+        {
+          "component": "formula_processor",
+          "metric": "memory_usage",
+          "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+          "automated": true
+        },
+        {
+          "component": "formula_processor",
+          "metric": "memory_usage",
+          "description": "Implémenter une stratégie de chargement paresseux (lazy loading)",
+          "automated": false
+        },
+        {
+          "component": "formula_processor",
+          "metric": "cpu_usage",
+          "description": "Utiliser des bibliothèques optimisées comme NumPy pour les opérations intensives",
+          "automated": false
+        },
+        {
+          "component": "formula_processor",
+          "metric": "cpu_usage",
+          "description": "Considérer l'utilisation du multiprocessing pour les tâches parallélisables",
+          "automated": false
+        }
+      ],
+      "high": [
+        {
+          "component": "chunking",
+          "metric": "cpu_usage",
+          "description": "Utiliser des bibliothèques optimisées comme NumPy pour les opérations intensives",
+          "automated": false
+        },
+        {
+          "component": "chunking",
+          "metric": "cpu_usage",
+          "description": "Considérer l'utilisation du multiprocessing pour les tâches parallélisables",
+          "automated": false
+        },
+        {
+          "component": "table_extractor",
+          "metric": "cpu_usage",
+          "description": "Utiliser des bibliothèques optimisées comme NumPy pour les opérations intensives",
+          "automated": false
+        },
+        {
+          "component": "table_extractor",
+          "metric": "cpu_usage",
+          "description": "Considérer l'utilisation du multiprocessing pour les tâches parallélisables",
+          "automated": false
+        }
+      ],
+      "medium": [],
+      "low": [],
+      "general": [
+        "Revoir l'architecture des composants critiques identifiés",
+        "Optimiser en priorité les processeurs spécialisés qui consomment le plus de ressources",
+        "Envisager l'utilisation de caching pour les opérations répétées",
+        "Évaluer les stratégies de mise à l'échelle horizontale pour les charges importantes"
+      ]
+    }
+  },
+  "optimizations_summary": {
+    "total_count": 36,
+    "automated_count": 12,
+    "manual_count": 24,
+    "by_severity": {
+      "critical": 32,
+      "high": 4,
+      "medium": 0,
+      "low": 0
+    },
+    "by_metric": {
+      "duration": 12,
+      "memory_usage": 12,
+      "cpu_usage": 12
+    }
+  }
+}

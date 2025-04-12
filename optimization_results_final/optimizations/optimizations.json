@@ -1,0 +1,386 @@
+[
+  {
+    "component": "orchestration",
+    "metric": "duration",
+    "severity": "critical",
+    "description": "Optimiser les boucles imbriquées en réduisant la complexité algorithmique",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\orchestration.py"
+  },
+  {
+    "component": "orchestration",
+    "metric": "duration",
+    "severity": "critical",
+    "description": "Utiliser du caching pour éviter les calculs répétés",
+    "automated": true,
+    "code_change": {
+      "type": "add_cache",
+      "line": 42,
+      "original": "result = expensive_calculation(input_data)",
+      "new": "@lru_cache(maxsize=128)\ndef cached_calculation(input_data):\n    return expensive_calculation(input_data)\n\nresult = cached_calculation(input_data)"
+    },
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\orchestration.py"
+  },
+  {
+    "component": "orchestration",
+    "metric": "memory_usage",
+    "severity": "critical",
+    "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+    "automated": true,
+    "code_change": {
+      "type": "list_to_generator",
+      "line": 78,
+      "original": "results = [process(item) for item in large_collection]",
+      "new": "results = (process(item) for item in large_collection)"
+    },
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\orchestration.py"
+  },
+  {
+    "component": "orchestration",
+    "metric": "memory_usage",
+    "severity": "critical",
+    "description": "Implémenter une stratégie de chargement paresseux (lazy loading)",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\orchestration.py"
+  },
+  {
+    "component": "orchestration",
+    "metric": "cpu_usage",
+    "severity": "high",
+    "description": "Utiliser des bibliothèques optimisées comme NumPy pour les opérations intensives",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\orchestration.py"
+  },
+  {
+    "component": "orchestration",
+    "metric": "cpu_usage",
+    "severity": "high",
+    "description": "Considérer l'utilisation du multiprocessing pour les tâches parallélisables",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\orchestration.py"
+  },
+  {
+    "component": "chunking",
+    "metric": "duration",
+    "severity": "critical",
+    "description": "Optimiser les boucles imbriquées en réduisant la complexité algorithmique",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\chunking.py"
+  },
+  {
+    "component": "chunking",
+    "metric": "duration",
+    "severity": "critical",
+    "description": "Utiliser du caching pour éviter les calculs répétés",
+    "automated": true,
+    "code_change": {
+      "type": "add_cache",
+      "line": 42,
+      "original": "result = expensive_calculation(input_data)",
+      "new": "@lru_cache(maxsize=128)\ndef cached_calculation(input_data):\n    return expensive_calculation(input_data)\n\nresult = cached_calculation(input_data)"
+    },
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\chunking.py"
+  },
+  {
+    "component": "chunking",
+    "metric": "memory_usage",
+    "severity": "critical",
+    "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+    "automated": true,
+    "code_change": {
+      "type": "list_to_generator",
+      "line": 78,
+      "original": "results = [process(item) for item in large_collection]",
+      "new": "results = (process(item) for item in large_collection)"
+    },
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\chunking.py"
+  },
+  {
+    "component": "chunking",
+    "metric": "memory_usage",
+    "severity": "critical",
+    "description": "Implémenter une stratégie de chargement paresseux (lazy loading)",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\chunking.py"
+  },
+  {
+    "component": "chunking",
+    "metric": "cpu_usage",
+    "severity": "critical",
+    "description": "Utiliser des bibliothèques optimisées comme NumPy pour les opérations intensives",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\chunking.py"
+  },
+  {
+    "component": "chunking",
+    "metric": "cpu_usage",
+    "severity": "critical",
+    "description": "Considérer l'utilisation du multiprocessing pour les tâches parallélisables",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\chunking.py"
+  },
+  {
+    "component": "validation",
+    "metric": "duration",
+    "severity": "critical",
+    "description": "Optimiser les boucles imbriquées en réduisant la complexité algorithmique",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\validation.py"
+  },
+  {
+    "component": "validation",
+    "metric": "duration",
+    "severity": "critical",
+    "description": "Utiliser du caching pour éviter les calculs répétés",
+    "automated": true,
+    "code_change": {
+      "type": "add_cache",
+      "line": 42,
+      "original": "result = expensive_calculation(input_data)",
+      "new": "@lru_cache(maxsize=128)\ndef cached_calculation(input_data):\n    return expensive_calculation(input_data)\n\nresult = cached_calculation(input_data)"
+    },
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\validation.py"
+  },
+  {
+    "component": "validation",
+    "metric": "memory_usage",
+    "severity": "critical",
+    "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+    "automated": true,
+    "code_change": {
+      "type": "list_to_generator",
+      "line": 78,
+      "original": "results = [process(item) for item in large_collection]",
+      "new": "results = (process(item) for item in large_collection)"
+    },
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\validation.py"
+  },
+  {
+    "component": "validation",
+    "metric": "memory_usage",
+    "severity": "critical",
+    "description": "Implémenter une stratégie de chargement paresseux (lazy loading)",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\validation.py"
+  },
+  {
+    "component": "validation",
+    "metric": "cpu_usage",
+    "severity": "critical",
+    "description": "Utiliser des bibliothèques optimisées comme NumPy pour les opérations intensives",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\validation.py"
+  },
+  {
+    "component": "validation",
+    "metric": "cpu_usage",
+    "severity": "critical",
+    "description": "Considérer l'utilisation du multiprocessing pour les tâches parallélisables",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\validation.py"
+  },
+  {
+    "component": "table_extractor",
+    "metric": "duration",
+    "severity": "critical",
+    "description": "Optimiser les boucles imbriquées en réduisant la complexité algorithmique",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\table_extractor.py"
+  },
+  {
+    "component": "table_extractor",
+    "metric": "duration",
+    "severity": "critical",
+    "description": "Utiliser du caching pour éviter les calculs répétés",
+    "automated": true,
+    "code_change": {
+      "type": "add_cache",
+      "line": 42,
+      "original": "result = expensive_calculation(input_data)",
+      "new": "@lru_cache(maxsize=128)\ndef cached_calculation(input_data):\n    return expensive_calculation(input_data)\n\nresult = cached_calculation(input_data)"
+    },
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\table_extractor.py"
+  },
+  {
+    "component": "table_extractor",
+    "metric": "memory_usage",
+    "severity": "critical",
+    "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+    "automated": true,
+    "code_change": {
+      "type": "list_to_generator",
+      "line": 78,
+      "original": "results = [process(item) for item in large_collection]",
+      "new": "results = (process(item) for item in large_collection)"
+    },
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\table_extractor.py"
+  },
+  {
+    "component": "table_extractor",
+    "metric": "memory_usage",
+    "severity": "critical",
+    "description": "Implémenter une stratégie de chargement paresseux (lazy loading)",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\table_extractor.py"
+  },
+  {
+    "component": "table_extractor",
+    "metric": "cpu_usage",
+    "severity": "critical",
+    "description": "Utiliser des bibliothèques optimisées comme NumPy pour les opérations intensives",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\table_extractor.py"
+  },
+  {
+    "component": "table_extractor",
+    "metric": "cpu_usage",
+    "severity": "critical",
+    "description": "Considérer l'utilisation du multiprocessing pour les tâches parallélisables",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\table_extractor.py"
+  },
+  {
+    "component": "schema_analyzer",
+    "metric": "duration",
+    "severity": "critical",
+    "description": "Optimiser les boucles imbriquées en réduisant la complexité algorithmique",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\schema_analyzer.py"
+  },
+  {
+    "component": "schema_analyzer",
+    "metric": "duration",
+    "severity": "critical",
+    "description": "Utiliser du caching pour éviter les calculs répétés",
+    "automated": true,
+    "code_change": {
+      "type": "add_cache",
+      "line": 42,
+      "original": "result = expensive_calculation(input_data)",
+      "new": "@lru_cache(maxsize=128)\ndef cached_calculation(input_data):\n    return expensive_calculation(input_data)\n\nresult = cached_calculation(input_data)"
+    },
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\schema_analyzer.py"
+  },
+  {
+    "component": "schema_analyzer",
+    "metric": "memory_usage",
+    "severity": "critical",
+    "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+    "automated": true,
+    "code_change": {
+      "type": "list_to_generator",
+      "line": 78,
+      "original": "results = [process(item) for item in large_collection]",
+      "new": "results = (process(item) for item in large_collection)"
+    },
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\schema_analyzer.py"
+  },
+  {
+    "component": "schema_analyzer",
+    "metric": "memory_usage",
+    "severity": "critical",
+    "description": "Implémenter une stratégie de chargement paresseux (lazy loading)",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\schema_analyzer.py"
+  },
+  {
+    "component": "schema_analyzer",
+    "metric": "cpu_usage",
+    "severity": "critical",
+    "description": "Utiliser des bibliothèques optimisées comme NumPy pour les opérations intensives",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\schema_analyzer.py"
+  },
+  {
+    "component": "schema_analyzer",
+    "metric": "cpu_usage",
+    "severity": "critical",
+    "description": "Considérer l'utilisation du multiprocessing pour les tâches parallélisables",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\schema_analyzer.py"
+  },
+  {
+    "component": "formula_processor",
+    "metric": "duration",
+    "severity": "critical",
+    "description": "Optimiser les boucles imbriquées en réduisant la complexité algorithmique",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\formula_processor.py"
+  },
+  {
+    "component": "formula_processor",
+    "metric": "duration",
+    "severity": "critical",
+    "description": "Utiliser du caching pour éviter les calculs répétés",
+    "automated": true,
+    "code_change": {
+      "type": "add_cache",
+      "line": 42,
+      "original": "result = expensive_calculation(input_data)",
+      "new": "@lru_cache(maxsize=128)\ndef cached_calculation(input_data):\n    return expensive_calculation(input_data)\n\nresult = cached_calculation(input_data)"
+    },
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\formula_processor.py"
+  },
+  {
+    "component": "formula_processor",
+    "metric": "memory_usage",
+    "severity": "critical",
+    "description": "Utiliser des générateurs au lieu de listes pour les grandes collections",
+    "automated": true,
+    "code_change": {
+      "type": "list_to_generator",
+      "line": 78,
+      "original": "results = [process(item) for item in large_collection]",
+      "new": "results = (process(item) for item in large_collection)"
+    },
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\formula_processor.py"
+  },
+  {
+    "component": "formula_processor",
+    "metric": "memory_usage",
+    "severity": "critical",
+    "description": "Implémenter une stratégie de chargement paresseux (lazy loading)",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\formula_processor.py"
+  },
+  {
+    "component": "formula_processor",
+    "metric": "cpu_usage",
+    "severity": "critical",
+    "description": "Utiliser des bibliothèques optimisées comme NumPy pour les opérations intensives",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\formula_processor.py"
+  },
+  {
+    "component": "formula_processor",
+    "metric": "cpu_usage",
+    "severity": "critical",
+    "description": "Considérer l'utilisation du multiprocessing pour les tâches parallélisables",
+    "automated": false,
+    "code_change": null,
+    "file_path": "D:\\Projets\\POC TECHNICIA\\app\\core\\file_processing\\formula_processor.py"
+  }
+]

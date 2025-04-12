@@ -1,0 +1,307 @@
+# Module de vérification des prérequis système pour l'environnement de staging
+# Version: 1.0
+# Date: 7 avril 2025
+#
+# Ce module vérifie que le système répond aux exigences minimales pour
+# l'environnement de staging du système OCR Technicia.
+
+<#
+.SYNOPSIS
+    Vérifie que le système répond aux prérequis matériels et logiciels.
+
+.DESCRIPTION
+    Cette fonction effectue une série de vérifications pour s'assurer que
+    le système répond aux exigences minimales spécifiées dans la configuration.
+    Elle vérifie le CPU, la mémoire, l'espace disque, les droits d'accès et 
+    les composants logiciels de base.
+
+.RETURNS
+    $true si tous les prérequis sont satisfaits, $false sinon.
+
+.EXAMPLE
+    $result = Test-SystemPrerequisites
+    if ($result) { Write-Host "Système conforme" } else { Write-Host "Système non conforme" }
+#>
+function Test-SystemPrerequisites {
+    Start-LogSection "Vérification des prérequis système"
+    
+    $allPrerequisitesMet = $true
+    
+    try {
+        # 1. Vérification du CPU
+        Write-LogMessage "Vérification du processeur..." "INFO"
+        
+        $cpuInfo = Get-WmiObject -Class Win32_Processor
+        $cpuCores = $cpuInfo.NumberOfCores
+        
+        Write-LogMessage "CPU détecté: $($cpuInfo.Name) ($cpuCores cœurs)" "INFO"
+        
+        if ($cpuCores -lt $global:config.requirements.hardware.minCPUCores) {
+            Write-LogMessage "Le système nécessite au moins $($global:config.requirements.hardware.minCPUCores) cœurs CPU" "ERROR"
+            $allPrerequisitesMet = $false
+        }
+        
+        # 2. Vérification de la mémoire
+        Write-LogMessage "Vérification de la mémoire RAM..." "INFO"
+        
+        $memoryInfo = Get-WmiObject -Class Win32_ComputerSystem
+        $totalRAM = [math]::Round($memoryInfo.TotalPhysicalMemory / 1GB, 2)
+        
+        Write-LogMessage "Mémoire RAM détectée: $totalRAM GB" "INFO"
+        
+        if ($totalRAM -lt $global:config.requirements.hardware.minRAMGB) {
+            Write-LogMessage "Le système nécessite au moins $($global:config.requirements.hardware.minRAMGB) GB de RAM" "ERROR"
+            $allPrerequisitesMet = $false
+        }
+        
+        # 3. Vérification de l'espace disque
+        Write-LogMessage "Vérification de l'espace disque..." "INFO"
+        
+        $driveInfo = Get-WmiObject -Class Win32_LogicalDisk -Filter "DeviceID='C:'"
+        $freeSpaceGB = [math]::Round($driveInfo.FreeSpace / 1GB, 2)
+        
+        Write-LogMessage "Espace disque libre détecté: $freeSpaceGB GB" "INFO"
+        
+        if ($freeSpaceGB -lt $global:config.requirements.hardware.minDiskSpaceGB) {
+            Write-LogMessage "Le système nécessite au moins $($global:config.requirements.hardware.minDiskSpaceGB) GB d'espace disque libre" "ERROR"
+            $allPrerequisitesMet = $false
+        }
+        
+        # 4. Vérification des privilèges administrateur
+        Write-LogMessage "Vérification des privilèges administrateur..." "INFO"
+        
+        $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+        $isAdmin = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        
+        if ($isAdmin) {
+            Write-LogMessage "Privilèges administrateur vérifiés" "SUCCESS"
+        }
+        else {
+            Write-LogMessage "Le script doit être exécuté avec des privilèges administrateur" "ERROR"
+            $allPrerequisitesMet = $false
+        }
+        
+        # 5. Vérification de la version de PowerShell
+        Write-LogMessage "Vérification de la version de PowerShell..." "INFO"
+        
+        $psVersion = $PSVersionTable.PSVersion
+        Write-LogMessage "Version PowerShell détectée: $($psVersion.Major).$($psVersion.Minor)" "INFO"
+        
+        if ($psVersion.Major -lt $global:config.requirements.software.minPowerShellMajorVersion) {
+            Write-LogMessage "Le système nécessite PowerShell version $($global:config.requirements.software.minPowerShellMajorVersion) ou supérieure" "ERROR"
+            $allPrerequisitesMet = $false
+        }
+        
+        # 6. Vérification de la connexion réseau
+        Write-LogMessage "Vérification de la connexion réseau..." "INFO"
+        
+        $networkTest = Test-Connection -ComputerName www.google.com -Count 1 -Quiet
+        
+        if ($networkTest) {
+            Write-LogMessage "Connexion réseau vérifiée" "SUCCESS"
+        }
+        else {
+            Write-LogMessage "Aucune connexion Internet détectée" "ERROR"
+            $allPrerequisitesMet = $false
+        }
+    }
+    catch {
+        Write-LogMessage "Erreur lors de la vérification des prérequis système: $($_.Exception.Message)" "ERROR"
+        Write-LogMessage "Stack trace: $($_.ScriptStackTrace)" "ERROR"
+        $allPrerequisitesMet = $false
+    }
+    
+    End-LogSection
+    return $allPrerequisitesMet
+}
+
+<#
+.SYNOPSIS
+    Vérifie si un logiciel spécifique est installé.
+
+.DESCRIPTION
+    Cette fonction vérifie si un logiciel spécifique est installé sur le système
+    en recherchant dans le registre Windows ou en essayant de trouver 
+    l'exécutable dans le PATH.
+
+.PARAMETER SoftwareName
+    Le nom du logiciel à vérifier.
+
+.PARAMETER MinVersion
+    La version minimale requise (facultatif).
+
+.PARAMETER ExecutableName
+    Le nom de l'exécutable à rechercher dans le PATH (facultatif).
+
+.RETURNS
+    Un objet avec les propriétés IsInstalled, Version, et Path.
+
+.EXAMPLE
+    $docker = Test-SoftwareInstalled -SoftwareName "Docker Desktop" -ExecutableName "docker"
+    if ($docker.IsInstalled) { Write-Host "Docker est installé: $($docker.Version)" }
+#>
+function Test-SoftwareInstalled {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$SoftwareName,
+        
+        [Parameter(Mandatory=$false)]
+        [string]$MinVersion = "",
+        
+        [Parameter(Mandatory=$false)]
+        [string]$ExecutableName = ""
+    )
+    
+    $result = @{
+        IsInstalled = $false
+        Version = ""
+        Path = ""
+    }
+    
+    try {
+        # Recherche dans le registre (pour les applications Windows)
+        $uninstallKeys = @(
+            "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+        )
+        
+        foreach ($key in $uninstallKeys) {
+            $installed = Get-ItemProperty $key | Where-Object { $_.DisplayName -like "*$SoftwareName*" }
+            
+            if ($installed) {
+                $result.IsInstalled = $true
+                $result.Version = $installed.DisplayVersion
+                $result.Path = $installed.InstallLocation
+                break
+            }
+        }
+        
+        # Si non trouvé dans le registre, essayer de trouver l'exécutable dans le PATH
+        if (-not $result.IsInstalled -and $ExecutableName) {
+            $command = Get-Command -Name $ExecutableName -ErrorAction SilentlyContinue
+            
+            if ($command) {
+                $result.IsInstalled = $true
+                $result.Path = $command.Source
+                
+                # Essayer d'obtenir la version via la commande (peut varier selon l'application)
+                try {
+                    $versionOutput = Invoke-Expression "$ExecutableName --version" -ErrorAction SilentlyContinue
+                    if ($versionOutput) {
+                        # Essayer d'extraire une version au format X.Y.Z
+                        $versionMatch = [regex]::Match($versionOutput, '\d+\.\d+\.\d+')
+                        if ($versionMatch.Success) {
+                            $result.Version = $versionMatch.Value
+                        }
+                        else {
+                            $result.Version = "Version détectée mais format inconnu"
+                        }
+                    }
+                }
+                catch {
+                    $result.Version = "Inconnu"
+                }
+            }
+        }
+        
+        # Vérification de la version minimale si spécifiée
+        if ($result.IsInstalled -and $MinVersion -and $result.Version) {
+            try {
+                $currentVersion = [version]$result.Version
+                $requiredVersion = [version]$MinVersion
+                
+                if ($currentVersion -lt $requiredVersion) {
+                    Write-LogMessage "La version de $SoftwareName ($($result.Version)) est inférieure à la version minimale requise ($MinVersion)" "WARN"
+                }
+            }
+            catch {
+                Write-LogMessage "Impossible de comparer les versions pour $SoftwareName" "WARN"
+            }
+        }
+    }
+    catch {
+        Log-Exception $_ "Test-SoftwareInstalled pour $SoftwareName"
+    }
+    
+    return $result
+}
+
+<#
+.SYNOPSIS
+    Vérifie les dépendances logicielles requises.
+
+.DESCRIPTION
+    Cette fonction vérifie si toutes les dépendances logicielles requises pour l'environnement
+    de staging sont installées et à la version minimale spécifiée.
+
+.RETURNS
+    $true si toutes les dépendances sont satisfaites, $false sinon.
+
+.EXAMPLE
+    $result = Test-SoftwareDependencies
+    if ($result) { Write-Host "Toutes les dépendances sont satisfaites" }
+#>
+function Test-SoftwareDependencies {
+    Start-LogSection "Vérification des dépendances logicielles"
+    
+    $allDependenciesMet = $true
+    
+    try {
+        $requiredSoftware = $global:config.software.requiredSoftware
+        
+        foreach ($software in $requiredSoftware) {
+            Start-LogTask "Vérification de $($software.name)"
+            
+            $softwareInfo = Test-SoftwareInstalled -SoftwareName $software.name -MinVersion $software.minVersion -ExecutableName $software.executable
+            
+            if ($softwareInfo.IsInstalled) {
+                Write-LogMessage "$($software.name) est installé, version: $($softwareInfo.Version)" "INFO"
+                
+                if ($software.minVersion -and $softwareInfo.Version) {
+                    try {
+                        $currentVersion = [version]$softwareInfo.Version
+                        $requiredVersion = [version]$software.minVersion
+                        
+                        if ($currentVersion -lt $requiredVersion) {
+                            Write-LogMessage "La version de $($software.name) ($($softwareInfo.Version)) est inférieure à la version minimale requise ($($software.minVersion))" "ERROR"
+                            if ($software.critical -eq $true) {
+                                $allDependenciesMet = $false
+                            }
+                        }
+                    }
+                    catch {
+                        Write-LogMessage "Impossible de comparer les versions pour $($software.name)" "WARN"
+                    }
+                }
+            }
+            else {
+                Write-LogMessage "$($software.name) n'est pas installé" "ERROR"
+                if ($software.critical -eq $true) {
+                    $allDependenciesMet = $false
+                }
+            }
+            
+            End-LogTask "Vérification de $($software.name)" $softwareInfo.IsInstalled
+        }
+        
+        # Synthèse des dépendances
+        if ($allDependenciesMet) {
+            Write-LogMessage "✅ Toutes les dépendances logicielles critiques sont satisfaites" "SUCCESS"
+        }
+        else {
+            Write-LogMessage "❌ Certaines dépendances logicielles critiques ne sont pas satisfaites" "ERROR"
+        }
+    }
+    catch {
+        Log-Exception $_ "Test-SoftwareDependencies"
+        $allDependenciesMet = $false
+    }
+    
+    End-LogSection
+    return $allDependenciesMet
+}
+
+# Exporter les fonctions du module
+Export-ModuleMember -Function Test-SystemPrerequisites
+Export-ModuleMember -Function Test-SoftwareInstalled
+Export-ModuleMember -Function Test-SoftwareDependencies

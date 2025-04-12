@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Request
 from app.api.v1.router import router as api_router
 from app.api.websocket.ocr_socket import router as ws_router
+from app.api.router import router as dashboard_api_router
 from app.schemas import ErrorResponse
 from app.config import settings
 from qdrant_client import QdrantClient
@@ -19,6 +20,7 @@ from app.core.llm_interface import LLMInterface
 from app.core.vector_store import VectorStore
 from app.core.rag_engine import RAGEngine
 from app.core.proxy_middleware import ReverseProxyMiddleware
+from app.api.register_routes import register_routes
 
 # Configuration du logging pour réduire les messages watchfiles
 logging.getLogger("watchfiles.main").setLevel(logging.WARNING)
@@ -101,6 +103,10 @@ app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 # Inclusion des routeurs dans l'ordre correct (WebSocket d'abord)
 app.include_router(ws_router, tags=["websocket"])
 app.include_router(api_router, prefix="/api/v1", tags=["api"])
+app.include_router(dashboard_api_router, prefix="/api", tags=["dashboard"])
+
+# Enregistrement des routes de l'API de traitement de documents
+register_routes(app)
 
 # État global de l'application
 app.state.startup_complete = False
@@ -152,6 +158,12 @@ async def startup_event():
     try:
         # Initialiser les composants une seule fois au démarrage
         await get_rag_engine()  # Cela initialisera aussi LLMInterface et VectorStore
+        
+        # Initialiser l'intégration OCR-RAG
+        from app.core.integrations import register_ocr_rag_integration
+        await register_ocr_rag_integration()
+        logger.info("Intégration OCR-RAG initialisée avec succès")
+        
         app.state.startup_complete = True
         
     except Exception as e:

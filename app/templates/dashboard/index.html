@@ -1,0 +1,603 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Vue d'ensemble - Tableau de Bord OCR{% endblock %}
+
+{% block page_title %}Vue d'ensemble{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-primary" id="refresh-dashboard">
+        <i class="fas fa-sync-alt"></i> Rafraîchir
+    </button>
+</div>
+<div class="btn-group me-2">
+    <a href="{{ url_for('dashboard_report') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-file-export"></i> Exporter rapport
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Vue d'ensemble des statistiques -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">Tâches actives</h5>
+                <h2 class="display-4" id="active-tasks-count">{{ active_tasks_count }}</h2>
+                <p class="card-text">Tâches OCR en cours d'exécution</p>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('dashboard_active_tasks') }}" class="text-white stretched-link">Voir détails</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">Tâches terminées</h5>
+                <h2 class="display-4" id="completed-tasks-count">{{ completed_tasks_count }}</h2>
+                <p class="card-text">Tâches OCR terminées avec succès</p>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('dashboard_history') }}?state=completed" class="text-white stretched-link">Voir détails</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">Pages traitées</h5>
+                <h2 class="display-4" id="processed-pages-count">{{ processed_pages_count }}</h2>
+                <p class="card-text">Pages traitées par OCR</p>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('dashboard_metrics') }}" class="text-white stretched-link">Voir métriques</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">Erreurs</h5>
+                <h2 class="display-4" id="error-tasks-count">{{ error_tasks_count }}</h2>
+                <p class="card-text">Tâches OCR en erreur</p>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('dashboard_history') }}?state=failed" class="text-white stretched-link">Voir détails</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tâches actives -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-tasks me-1"></i>
+        Tâches actives
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-sm" id="active-tasks-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom</th>
+                        <th>Document</th>
+                        <th>Méthode OCR</th>
+                        <th>Progression</th>
+                        <th>Temps écoulé</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in active_tasks %}
+                    <tr id="task-row-{{ task.task_id }}" data-task-id="{{ task.task_id }}">
+                        <td><small>{{ task.task_id|truncate(8, True, '') }}</small></td>
+                        <td>{{ task.name }}</td>
+                        <td><small>{{ task.document_path|basename }}</small></td>
+                        <td>{{ task.ocr_provider }}</td>
+                        <td>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" 
+                                     style="width: {{ task.progress * 100 }}%;" 
+                                     aria-valuenow="{{ task.progress * 100 }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    {{ task.progress|format_percent }}
+                                </div>
+                            </div>
+                            <small class="text-muted">Page {{ task.current_page + 1 }}/{{ task.total_pages }}</small>
+                        </td>
+                        <td class="task-duration" data-started="{{ task.started_at }}">{{ task.duration|format_duration }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('dashboard_task_detail', task_id=task.task_id) }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-warning btn-pause-task" data-task-id="{{ task.task_id }}">
+                                    <i class="fas fa-pause"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-cancel-task" data-task-id="{{ task.task_id }}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">Aucune tâche active</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-end mt-2">
+            <a href="{{ url_for('dashboard_active_tasks') }}" class="btn btn-primary btn-sm">Voir toutes les tâches actives</a>
+        </div>
+    </div>
+</div>
+
+<!-- Graphique de performance -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-chart-bar me-1"></i>
+                Performance des moteurs OCR
+            </div>
+            <div class="card-body">
+                <canvas id="ocrPerformanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-chart-pie me-1"></i>
+                Répartition des types de documents
+            </div>
+            <div class="card-body">
+                <canvas id="documentTypesChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dernières tâches terminées -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-history me-1"></i>
+        Dernières tâches terminées
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-sm" id="recent-tasks-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom</th>
+                        <th>Document</th>
+                        <th>Méthode OCR</th>
+                        <th>État</th>
+                        <th>Temps de traitement</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in recent_completed_tasks %}
+                    <tr>
+                        <td><small>{{ task.task_id|truncate(8, True, '') }}</small></td>
+                        <td>{{ task.name }}</td>
+                        <td><small>{{ task.document_path|basename }}</small></td>
+                        <td>{{ task.ocr_provider }}</td>
+                        <td><span class="badge bg-{{ task.state|state_color }}">{{ task.state|state_label }}</span></td>
+                        <td>{{ task.processing_time|format_duration }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('dashboard_task_detail', task_id=task.task_id) }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-success btn-retry-task" data-task-id="{{ task.task_id }}">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">Aucune tâche terminée récemment</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-end mt-2">
+            <a href="{{ url_for('dashboard_history') }}" class="btn btn-primary btn-sm">Voir l'historique complet</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configuration des graphiques
+        setupCharts();
+        
+        // Mise à jour des durées
+        updateDurations();
+        
+        // Rafraîchir le tableau de bord
+        document.getElementById('refresh-dashboard').addEventListener('click', function() {
+            location.reload();
+        });
+        
+        // Écouter les événements de mise à jour des tâches
+        document.addEventListener('task-updated', function(event) {
+            updateTaskRow(event.detail);
+            updateDashboardCounters();
+        });
+        
+        // Écouter les événements de suppression de tâches
+        document.addEventListener('task-deleted', function(event) {
+            const taskRow = document.getElementById(`task-row-${event.detail}`);
+            if (taskRow) {
+                taskRow.remove();
+            }
+            updateDashboardCounters();
+        });
+        
+        // Gestion des boutons de contrôle des tâches
+        setupTaskControls();
+    });
+    
+    // Mise à jour des compteurs de tâches
+    function updateDashboardCounters() {
+        fetch('/api/dashboard/tasks?active_only=true')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('active-tasks-count').textContent = data.length;
+            });
+            
+        fetch('/api/dashboard/tasks?state=completed')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('completed-tasks-count').textContent = data.length;
+            });
+            
+        fetch('/api/dashboard/tasks?state=failed')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('error-tasks-count').textContent = data.length;
+            });
+            
+        fetch('/api/dashboard/metrics')
+            .then(response => response.json())
+            .then(data => {
+                let totalPages = 0;
+                data.forEach(metric => {
+                    totalPages += metric.total_pages;
+                });
+                document.getElementById('processed-pages-count').textContent = totalPages;
+            });
+    }
+    
+    // Mise à jour d'une ligne de tâche
+    function updateTaskRow(task) {
+        const row = document.getElementById(`task-row-${task.task_id}`);
+        if (!row) return;
+        
+        // Mettre à jour la progression
+        const progressBar = row.querySelector('.progress-bar');
+        if (progressBar) {
+            const progressPercent = task.progress * 100;
+            progressBar.style.width = `${progressPercent}%`;
+            progressBar.setAttribute('aria-valuenow', progressPercent);
+            progressBar.textContent = `${progressPercent.toFixed(1)}%`;
+        }
+        
+        // Mettre à jour la page actuelle
+        const pageCounter = row.querySelector('small.text-muted');
+        if (pageCounter) {
+            pageCounter.textContent = `Page ${task.current_page + 1}/${task.total_pages}`;
+        }
+        
+        // Mettre à jour la durée
+        const durationCell = row.querySelector('.task-duration');
+        if (durationCell && task.started_at) {
+            durationCell.setAttribute('data-started', task.started_at);
+            
+            // Calculer la durée
+            const startTime = new Date(task.started_at);
+            const now = new Date();
+            const durationMs = now - startTime;
+            durationCell.textContent = formatDuration(durationMs / 1000);
+        }
+        
+        // Si la tâche est terminée, recharger la page
+        if (task.state === 'completed' || task.state === 'failed') {
+            setTimeout(() => location.reload(), 1000);
+        }
+    }
+    
+    // Mise à jour des durées
+    function updateDurations() {
+        const durationElements = document.querySelectorAll('.task-duration');
+        durationElements.forEach(element => {
+            const startedAt = element.getAttribute('data-started');
+            if (startedAt) {
+                const startTime = new Date(startedAt);
+                const now = new Date();
+                const durationMs = now - startTime;
+                element.textContent = formatDuration(durationMs / 1000);
+            }
+        });
+        
+        setTimeout(updateDurations, 1000);
+    }
+    
+    // Formater une durée en secondes
+    function formatDuration(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        
+        return `${h > 0 ? h + 'h ' : ''}${m > 0 || h > 0 ? m + 'm ' : ''}${s}s`;
+    }
+    
+    // Configuration des graphiques
+    function setupCharts() {
+        // Récupérer les données pour les graphiques
+        fetch('/api/dashboard/metrics')
+            .then(response => response.json())
+            .then(data => {
+                // Préparer les données pour le graphique de performance
+                const providers = data.map(m => m.provider_name);
+                const successRates = data.map(m => m.success_rate * 100);
+                const avgProcessingTimes = data.map(m => m.average_processing_time_per_page);
+                
+                // Graphique de performance
+                const perfCtx = document.getElementById('ocrPerformanceChart').getContext('2d');
+                new Chart(perfCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: providers,
+                        datasets: [
+                            {
+                                label: 'Taux de réussite (%)',
+                                data: successRates,
+                                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Temps moyen par page (s)',
+                                data: avgProcessingTimes,
+                                backgroundColor: 'rgba(255, 159, 64, 0.6)',
+                                borderColor: 'rgba(255, 159, 64, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Taux de réussite (%)'
+                                },
+                                min: 0,
+                                max: 100
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Temps par page (s)'
+                                },
+                                min: 0,
+                                grid: {
+                                    drawOnChartArea: false
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Préparer les données pour les types de documents
+                let docTypes = {};
+                
+                data.forEach(metric => {
+                    Object.entries(metric.document_types).forEach(([type, count]) => {
+                        docTypes[type] = (docTypes[type] || 0) + count;
+                    });
+                });
+                
+                // Graphique de types de documents
+                const docCtx = document.getElementById('documentTypesChart').getContext('2d');
+                new Chart(docCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(docTypes),
+                        datasets: [{
+                            data: Object.values(docTypes),
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.6)',
+                                'rgba(54, 162, 235, 0.6)',
+                                'rgba(255, 206, 86, 0.6)',
+                                'rgba(75, 192, 192, 0.6)',
+                                'rgba(153, 102, 255, 0.6)',
+                                'rgba(255, 159, 64, 0.6)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)',
+                                'rgba(255, 159, 64, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.raw;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${context.label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+    }
+    
+    // Configuration des contrôles de tâches
+    function setupTaskControls() {
+        // Gestion des boutons de pause
+        document.querySelectorAll('.btn-pause-task').forEach(button => {
+            button.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                
+                // Mettre à jour l'état de la tâche
+                fetch(`/api/dashboard/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        state: 'paused'
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Erreur lors de la mise en pause de la tâche');
+                })
+                .then(data => {
+                    // Mettre à jour l'interface
+                    updateTaskRow(data);
+                    
+                    // Changer l'icône du bouton
+                    this.innerHTML = '<i class="fas fa-play"></i>';
+                    this.classList.remove('btn-pause-task');
+                    this.classList.add('btn-resume-task');
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert(error.message);
+                });
+            });
+        });
+        
+        // Gestion des boutons d'annulation
+        document.querySelectorAll('.btn-cancel-task').forEach(button => {
+            button.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                
+                if (!confirm('Êtes-vous sûr de vouloir annuler cette tâche ?')) {
+                    return;
+                }
+                
+                // Mettre à jour l'état de la tâche
+                fetch(`/api/dashboard/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        state: 'failed',
+                        metadata: {
+                            cancelled: true,
+                            cancelled_at: new Date().toISOString()
+                        }
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Erreur lors de l\'annulation de la tâche');
+                })
+                .then(data => {
+                    // Recharger la page
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert(error.message);
+                });
+            });
+        });
+        
+        // Gestion des boutons de reprise
+        document.querySelectorAll('.btn-retry-task').forEach(button => {
+            button.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                
+                // Créer une nouvelle tâche basée sur l'ancienne
+                fetch(`/api/dashboard/tasks/${taskId}`)
+                    .then(response => response.json())
+                    .then(task => {
+                        return fetch('/api/dashboard/tasks', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                name: `${task.name} (relance)`,
+                                description: `Relance de la tâche ${task.task_id}`,
+                                document_path: task.document_path,
+                                output_path: task.output_path,
+                                ocr_provider: task.ocr_provider,
+                                metadata: {
+                                    ...task.metadata,
+                                    original_task_id: task.task_id
+                                }
+                            })
+                        });
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                        throw new Error('Erreur lors de la relance de la tâche');
+                    })
+                    .then(data => {
+                        // Rediriger vers les détails de la nouvelle tâche
+                        window.location.href = `/dashboard/tasks/${data.task_id}`;
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        alert(error.message);
+                    });
+            });
+        });
+    }
+</script>
+{% endblock %}
